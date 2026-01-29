@@ -1,0 +1,109 @@
+.table-container {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin-top: 24px;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.table-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.total-count {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.document-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.document-table th {
+  background-color: #f9fafb;
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.document-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.document-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.doc-type {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.doc-type-mou {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.doc-type-pks {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.badge-success { 
+  background-color: #dcfce7; 
+  color: #166534; 
+}
+
+.badge-danger { 
+  background-color: #fee2e2; 
+  color: #b91c1c; 
+}
+
+.badge-warning { 
+  background-color: #fef3c7; 
+  color: #854d0e; 
+}
+
+.badge-secondary { 
+  background-color: #e5e7eb; 
+  color: #4b5563; 
+}
+
+.loading, .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 16px;
+}

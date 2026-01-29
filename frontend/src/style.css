@@ -1,5 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
-
 /* =========================
    KOMINFO THEME (PALETTE)
    ========================= */
@@ -11,6 +11,24 @@
   --kominfo-white: rgb(255,255,255);  /* 255, 255, 255 */
 
   --page-bg: #f6f8fb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f9fafb;
+  color: #1f2937;
+  line-height: 1.6;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 20px;
 }
 
 * { box-sizing: border-box; }

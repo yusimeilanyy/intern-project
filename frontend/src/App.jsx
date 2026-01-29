@@ -3,50 +3,65 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Homepage from './pages/Homepage';
 import Login from './pages/Login.jsx';
+import Dashboard from './components/Dashboard.jsx';
+import './style.css';
 
 function App() {
-
-  const [activeTab, setActiveTab] = useState('pemda');
   const [isLogin, setIsLogin] = useState(false);
+  const [currentPage, setCurrentPage] = useState('dashboard'); // 'dashboard' atau 'homepage'
 
   useEffect(() => {
-
-    // cek hash tab
-    const hash = window.location.hash.slice(1);
-    if (hash === 'non-pemda') {
-      setActiveTab('non-pemda');
-    } else {
-      setActiveTab('pemda');
-    }
-
-    // cek token login
     const token = localStorage.getItem("token");
     if (token) {
       setIsLogin(true);
     }
-
   }, []);
 
-  // JIKA BELUM LOGIN → TAMPILKAN LOGIN
   if (!isLogin) {
     return <Login onSuccess={() => setIsLogin(true)} />;
   }
 
-  // JIKA SUDAH LOGIN → TAMPILKAN HOMEPAGE
   return (
     <div className="min-h-screen bg-gray-50">
-
       <Header />
 
       <main className="container mx-auto px-4 py-6">
-        <Homepage
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        {/* Navigasi Halaman */}
+        <div className="mb-6 flex gap-4">
+          <button
+            onClick={() => setCurrentPage('dashboard')}
+            className={`px-4 py-2 rounded-lg font-medium transition ${
+              currentPage === 'dashboard'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => setCurrentPage('homepage')}
+            className={`px-4 py-2 rounded-lg font-medium transition ${
+              currentPage === 'homepage'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            Daftar MoU
+          </button>
+        </div>
+
+        {/* Render Halaman */}
+        {currentPage === 'dashboard' ? (
+          <Dashboard />
+        ) : (
+          <Homepage 
+            activeTab="pemda" 
+            onTabChange={() => {}} 
+          />
+        )}
       </main>
 
       <Footer />
-
     </div>
   );
 }
