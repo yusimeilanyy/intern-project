@@ -1,4 +1,3 @@
-// src/components/PemdaContent.jsx
 import { useState, useEffect } from 'react';
 import { provinces, regencies } from '../utils/regions';
 import FileIcon from "../assets/fileicon.svg";
@@ -47,7 +46,7 @@ async function apiFetch(path, options = {}) {
 // dataURL(base64) -> Blob (untuk preview data lama)
 function dataURLtoBlob(dataUrl) {
   const [header, base64] = dataUrl.split(",");
-  const mime = header.match(/data:(.*?);base64/)?.[1] || "application/octet-stream";
+  const mime = header.match(/(.*?);base64/)?.[1] || "application/octet-stream";
   const binary = atob(base64);
   const len = binary.length;
   const bytes = new Uint8Array(len);
@@ -61,72 +60,79 @@ export default function PemdaContent() {
   const [editingMou, setEditingMou] = useState(null);
   const [filter, setFilter] = useState('all');
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
+  const [loading, setLoading] = useState(true);
 
   // Load data dari DATABASE
   useEffect(() => {
     (async () => {
       try {
-        const rows = await apiFetch(`/mous?category=pemda`);
-        setMous(rows || []);
+        setLoading(true);
+        const data = await apiFetch(`/mous?category=pemda`);
+        
+        // ✅ Pastikan mous selalu array
+        const mousData = Array.isArray(data?.mous) ? data.mous : [];
+        setMous(mousData);
+        
+        console.log("MoU data loaded:", mousData.length, "items");
       } catch (e) {
-        console.error(e);
+        console.error("Error loading MoU data:", e);
         alert(`Gagal load data dari database: ${e.message}`);
-        setMous([]);
+        setMous([]); // ✅ Pastikan tetap array kosong jika error
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
-  // ✅ UBAH TOTAL: handleSave kirim FormData + file
   const handleSave = async (data) => {
-    try {
-      const {
-        finalDocumentFile,
-        finalDocumentName,
-        finalDocumentUrl,
-        ...payloadObj
-      } = data;
+  try {
+    const {
+      finalDocumentFile,
+      finalDocumentName,
+      finalDocumentUrl,
+      ...payloadObj
+    } = data;
 
-      const fd = new FormData();
-      fd.append("category", "pemda");
+    const fd = new FormData();
+    fd.append("category", "pemda");
+    
+    // ✅ HANYA sekali append payload dengan data yang benar
+    const payloadToSend = {
+      ...payloadObj,
+      finalDocumentName: finalDocumentName || "",
+      finalDocumentUrl: finalDocumentUrl || "",
+    };
+    
+    fd.append("payload", JSON.stringify(payloadToSend));
 
-      // payload = semua data selain file
-      const payloadToSend = {
-        ...payloadObj,
-        // simpan nama/url terakhir (kalau tidak upload file baru, url lama tetap)
-        finalDocumentName: finalDocumentName || "",
-        finalDocumentUrl: finalDocumentUrl || "",
-      };
-
-      fd.append("payload", JSON.stringify(payloadToSend));
-
-      // kalau user pilih file baru, kirim file
-      if (finalDocumentFile) {
-        fd.append("finalDocument", finalDocumentFile);
-      }
-
-      if (editingMou) {
-        const updated = await apiFetch(`/mous/${editingMou.id}`, {
-          method: "PUT",
-          body: fd,
-        });
-
-        setMous(mous.map(m => (m.id === editingMou.id ? updated : m)));
-        setEditingMou(null);
-      } else {
-        const created = await apiFetch(`/mous`, {
-          method: "POST",
-          body: fd,
-        });
-
-        setMous([created, ...mous]);
-      }
-
-      setShowForm(false);
-    } catch (e) {
-      console.error(e);
-      alert(`Gagal simpan ke database: ${e.message}`);
+    // kalau user pilih file baru, kirim file
+    if (finalDocumentFile) {
+      fd.append("file", finalDocumentFile);
     }
-  };
+
+    if (editingMou) {
+      const updated = await apiFetch(`/mous/${editingMou.id}`, {
+        method: "PUT",
+        body: fd,
+      });
+
+      setMous(mous.map(m => (m.id === editingMou.id ? updated : m)));
+      setEditingMou(null);
+    } else {
+      const created = await apiFetch(`/mous`, {
+        method: "POST",
+        body: fd,
+      });
+
+      setMous([created, ...mous]);
+    }
+
+    setShowForm(false);
+  } catch (e) {
+    console.error(e);
+    alert(`Gagal simpan ke database: ${e.message}`);
+  }
+};
 
   const handleDelete = async (id) => {
     if (!window.confirm('Yakin ingin menghapus MoU ini?')) return;
@@ -140,10 +146,13 @@ export default function PemdaContent() {
     }
   };
 
-  const filteredMoUs = mous.filter(mou => {
-    if (filter === 'all') return true;
-    return mou.status === filter;
-  });
+  // ✅ Validasi mous selalu array sebelum filter
+  const filteredMoUs = Array.isArray(mous) 
+    ? mous.filter(mou => {
+        if (filter === 'all') return true;
+        return mou.status === filter;
+      })
+    : [];
 
   const statusOptions = [
     "Baru",
@@ -179,6 +188,12 @@ export default function PemdaContent() {
     }
   };
 
+  const getDocumentTypeColor = (type) => {
+    return type === 'MoU' 
+      ? 'bg-blue-100 text-blue-800' 
+      : 'bg-green-100 text-green-800';
+  };
+
   // ✅ UBAH: Preview dokumen support URL /uploads + base64 lama
   const handlePreview = (fileContent, fileName) => {
     if (!fileContent) {
@@ -212,7 +227,7 @@ export default function PemdaContent() {
     // 2) data lama: base64 (data:)
     if (fileType === 'pdf') {
       let blob;
-      if (typeof fileContent === "string" && fileContent.startsWith("data:")) {
+      if (typeof fileContent === "string" && fileContent.startsWith("")) {
         blob = dataURLtoBlob(fileContent);
       } else {
         blob = new Blob([fileContent], { type: 'application/pdf' });
@@ -232,7 +247,7 @@ export default function PemdaContent() {
       });
     } else if (fileType === 'docx') {
       let blob;
-      if (typeof fileContent === "string" && fileContent.startsWith("data:")) {
+      if (typeof fileContent === "string" && fileContent.startsWith("")) {
         blob = dataURLtoBlob(fileContent);
       } else {
         blob = new Blob([fileContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
@@ -282,7 +297,7 @@ export default function PemdaContent() {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          Tambah MoU
+          Tambah Dokumen
         </button>
       </div>
 
@@ -291,7 +306,7 @@ export default function PemdaContent() {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <img src={FileBlack} className="h-5 w-5" alt="File Icon" />
-            <span className="font-medium">Riwayat MoU ({filteredMoUs.length})</span>
+            <span className="font-medium">Riwayat Dokumen ({filteredMoUs.length})</span>
           </div>
 
           <select
@@ -306,103 +321,117 @@ export default function PemdaContent() {
           </select>
         </div>
 
-        {/* Tabel atau Kosong */}
-        {filteredMoUs.length === 0 ? (
+        {/* Loading State */}
+        {loading ? (
           <div className="text-center py-12">
-            <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
-            <p className="text-gray-500">Belum ada catatan MoU. Klik "Tambah MoU Baru" untuk memulai.</p>
+            <div className="spinner mx-auto"></div>
+            <p className="text-gray-500 mt-4">Memuat data...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC PEMDA</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Mulai</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Berakhir</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen Final</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200 whitespace-normal">
-                {filteredMoUs.map(mou => (
-                  <tr key={mou.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.institutionalLevel || '-'}
-                    </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.type || '-'}
-                    </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                      {mou.bpsdmpPIC || '-'}
-                    </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                      {mou.partnerPIC || '-'}
-                      {mou.partnerPICPhone && (
-                        <div className="text-xs text-gray-500">{mou.partnerPICPhone}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
-                      {mou.cooperationStartDate || '-'}
-                    </td>
-                    <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
-                      {mou.cooperationEndDate || '-'}
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs rounded-md ${getStatusColor(mou.status)} max-w-[150px] break-words`}
-                        title={mou.status}
-                      >
-                        {mou.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.notes || '-'}
-                    </td>
-
-                    {/* ✅ UBAH: tampilkan dokumen dari URL */}
-                    <td className="px-4 py-2 text-center whitespace-nowrap">
-                      {mou.finalDocumentUrl ? (
-                        <button
-                          onClick={() => handlePreview(mou.finalDocumentUrl, mou.finalDocumentName || "document.pdf")}
-                          title="Lihat dokumen"
-                        >
-                          <img src={FinalDocIcon} className="h-4 w-4" alt="Final Doc Icon" />
-                        </button>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-
-                    <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <div className="flex justify-center gap-3">
-                        <button
-                          onClick={() => {
-                            setEditingMou(mou);
-                            setShowForm(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <img src={EditIcon} className="h-5 w-5" alt="Edit Icon" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(mou.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <img src={DeleteIcon} className="h-5 w-5" alt="Delete Icon" />
-                        </button>
-                      </div>
-                    </td>
+          // Tabel atau Kosong
+          filteredMoUs.length === 0 ? (
+            <div className="text-center py-12">
+              <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
+              <p className="text-gray-500">Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Dokumen</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sub Jenis</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC PEMDA</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Mulai</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Berakhir</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen Final</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200 whitespace-normal">
+                  {filteredMoUs.map(mou => (
+                    <tr key={mou.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 text-center break-words max-w-[120px]">
+                        <span className={`inline-block px-2 py-1 text-xs rounded-md font-medium ${getDocumentTypeColor(mou.documentType || 'MoU')}`}>
+                          {mou.documentType || 'MoU'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-center break-words max-w-[150px]">
+                        {mou.institutionalLevel || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-center break-words max-w-[150px]">
+                        {mou.type || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-center break-words max-w-[120px]">
+                        {mou.bpsdmpPIC || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-center break-words max-w-[120px]">
+                        {mou.partnerPIC || '-'}
+                        {mou.partnerPICPhone && (
+                          <div className="text-xs text-gray-500">{mou.partnerPICPhone}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
+                        {mou.cooperationStartDate || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
+                        {mou.cooperationEndDate || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <span
+                          className={`inline-block px-2 py-1 text-xs rounded-md ${getStatusColor(mou.status)} max-w-[150px] break-words`}
+                          title={mou.status}
+                        >
+                          {mou.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-center break-words max-w-[150px]">
+                        {mou.notes || '-'}
+                      </td>
+
+                      {/* ✅ UBAH: tampilkan dokumen dari URL */}
+                      <td className="px-4 py-2 text-center whitespace-nowrap">
+                        {mou.finalDocumentUrl ? (
+                          <button
+                            onClick={() => handlePreview(mou.finalDocumentUrl, mou.finalDocumentName || "document.pdf")}
+                            title="Lihat dokumen"
+                          >
+                            <img src={FinalDocIcon} className="h-4 w-4" alt="Final Doc Icon" />
+                          </button>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+
+                      <td className="px-4 py-2 text-center whitespace-nowrap">
+                        <div className="flex justify-center gap-3">
+                          <button
+                            onClick={() => {
+                              setEditingMou(mou);
+                              setShowForm(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <img src={EditIcon} className="h-5 w-5" alt="Edit Icon" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(mou.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <img src={DeleteIcon} className="h-5 w-5" alt="Delete Icon" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
       </div>
 
@@ -453,6 +482,8 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
   ];
 
   const [formData, setFormData] = useState({
+    // ✅ PERUBAHAN 1: documentType default kosong (bukan 'MoU')
+    documentType: '', 
     level: '',
     institutionalLevel: '',
     type: '',
@@ -467,12 +498,9 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
     cooperationStartDate: '',
     cooperationEndDate: '',
     status: 'Baru',
-
-    // ✅ UBAH: simpan file asli, bukan base64
     finalDocumentFile: null,
     finalDocumentName: '',
     finalDocumentUrl: '',
-
     provinceId: '',
     regencyId: ''
   });
@@ -486,6 +514,8 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
       const isCustom = initialType && !knownTypes.includes(initialType);
 
       setFormData({
+        // ✅ PERUBAHAN 2: documentType default kosong saat edit (bukan 'MoU')
+        documentType: initialData.documentType || '', 
         level: initialData.level || '',
         institutionalLevel: initialData.institutionalLevel || '',
         type: isCustom ? 'Lainnya' : initialType,
@@ -500,12 +530,9 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
         cooperationStartDate: initialData.cooperationStartDate || '',
         cooperationEndDate: initialData.cooperationEndDate || '',
         status: initialData.status || 'Baru',
-
-        // ✅ saat edit: file aslinya tidak bisa diambil, simpan URL lama
         finalDocumentFile: null,
         finalDocumentName: initialData.finalDocumentName || '',
         finalDocumentUrl: initialData.finalDocumentUrl || '',
-
         provinceId: initialData.provinceId || '',
         regencyId: initialData.regencyId || ''
       });
@@ -564,7 +591,6 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
     }));
   };
 
-  // ✅ UBAH: simpan File object (bukan base64)
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -598,10 +624,25 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
       <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl overflow-y-auto max-h-[90vh]">
         <div className="p-6">
           <h2 className="text-xl font-bold mb-4">
-            {initialData ? 'Edit MoU' : 'Tambah MoU Pemerintah Daerah'}
+            {initialData ? 'Edit Dokumen' : 'Tambah Dokumen Pemerintah Daerah'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* ✅ DROPDOWN JENIS DOKUMEN */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Jenis Dokumen</label>
+              <select
+                name="documentType"
+                value={formData.documentType}
+                onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Pilih jenis dokumen</option>
+                <option value="MoU">MoU (Memorandum of Understanding)</option>
+                <option value="PKS">PKS (Perjanjian Kerjasama)</option>
+              </select>
+            </div>
+
             {/* Tingkat MoU & Jenis MoU */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -854,7 +895,7 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
                 type="submit"
                 className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800"
               >
-                {initialData ? "Simpan Perubahan" : "Simpan MoU"}
+                {initialData ? "Simpan Perubahan" : "Simpan Dokumen"}
               </button>
             </div>
           </form>

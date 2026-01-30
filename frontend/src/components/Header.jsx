@@ -16,7 +16,7 @@ export default function Header() {
 
             <div className="min-w-0">
               <h1 className="text-3xl font-bold text-gray-800 leading-tight truncate">
-                Sistem Pelacakan MoU
+                Sistem Pelacakan MoU & PKS
               </h1>
 
               <p className="text-2xl md:text-sm text-gray-500 leading-snug whitespace-nowrap overflow-hidden text-ellipsis">

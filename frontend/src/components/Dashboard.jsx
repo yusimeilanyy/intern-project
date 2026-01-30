@@ -2,64 +2,73 @@ import React, { useState, useEffect } from 'react';
 import StatCard from './StatCard';
 import ChartContainer from './ChartContainer';
 import DocumentTable from './DocumentTable';
-import './Dashboard.css'; // ← Path yang benar (tanpa "pages/")
+import './Dashboard.css';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // MOCK DATA (hapus ini setelah backend siap)
-    const mockStats = {
-      totalMou: 25,
-      totalPks: 18,
-      activeCount: 35,
-      expiredCount: 5,
-      expiringSoonCount: 3,
-      mou: { active: 20, expired: 5 },
-      pks: { active: 15, expired: 3 },
-      monthlyTrend: {
-        mou: [2, 3, 1, 4, 2, 3, 1, 2, 4, 3, 2, 1],
-        pks: [1, 2, 1, 3, 2, 1, 2, 3, 1, 2, 3, 2]
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Ambil token dari localStorage
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          throw new Error('Token tidak ditemukan. Silakan login terlebih dahulu.');
+        }
+        
+        // 1. Fetch data dari API backend dengan token
+        const response = await fetch('/api/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${token}`  // ✅ Tambahkan token
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Sesi Anda telah berakhir. Silakan login ulang.');
+          }
+          throw new Error('Gagal mengambil data dari server');
+        }
+        
+        const data = await response.json();
+        
+        // 2. Simpan data ke state
+        setStats({
+          totalMou: data.totalMou,
+          totalPks: data.totalPks,
+          activeCount: data.activeCount,
+          expiredCount: data.expiredCount,
+          mou: data.mou,
+          pks: data.pks
+        });
+        
+        setDocuments(data.documents);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError(err.message);
+        
+        // Jika error 401, hapus token dan redirect ke login
+        if (err.message.includes('401') || err.message.includes('sesi')) {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
-    const mockDocuments = [
-      {
-        id: 1,
-        type: 'MoU',
-        documentNumber: 'MoU/001/2024',
-        partnerName: 'Pemda Jakarta',
-        startDate: '2024-01-15',
-        endDate: '2025-01-15',
-        status: 'active'
-      },
-      {
-        id: 2,
-        type: 'PKS',
-        documentNumber: 'PKS/002/2024',
-        partnerName: 'Universitas Indonesia',
-        startDate: '2024-02-01',
-        endDate: '2025-02-01',
-        status: 'active'
-      },
-      {
-        id: 3,
-        type: 'MoU',
-        documentNumber: 'MoU/003/2023',
-        partnerName: 'Pemda Bandung',
-        startDate: '2023-03-10',
-        endDate: '2024-03-10',
-        status: 'expired'
-      }
-    ];
-
-    setTimeout(() => {
-      setStats(mockStats);
-      setDocuments(mockDocuments);
-      setLoading(false);
-    }, 500);
+    // 3. Fetch data saat komponen dimount
+    fetchData();
+    
+    // 4. Opsional: Auto-refresh setiap 5 menit
+    const interval = setInterval(fetchData, 300000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -67,6 +76,18 @@ const Dashboard = () => {
       <div className="loading-container">
         <div className="spinner"></div>
         <p className="loading-text">Memuat data dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <div className="error-icon">⚠️</div>
+        <p className="error-message">{error}</p>
+        <button className="retry-btn" onClick={() => window.location.reload()}>
+          Coba lagi
+        </button>
       </div>
     );
   }
@@ -79,26 +100,26 @@ const Dashboard = () => {
       <div className="stats-grid">
         <StatCard 
           title="Total MoU" 
-          value={stats?.totalMou || 0} 
+          value={stats.totalMou} 
           icon="fa-file-contract" 
           color="primary" 
         />
         <StatCard 
           title="Total PKS" 
-          value={stats?.totalPks || 0} 
+          value={stats.totalPks} 
           icon="fa-file-contract" 
           color="success" 
         />
         <StatCard 
           title="Aktif" 
-          value={stats?.activeCount || 0} 
+          value={stats.activeCount} 
           icon="fa-check-circle" 
           color="success" 
-          subtitle={`+${stats?.activeCount - stats?.expiredCount} dari total`}
+          subtitle={`+${stats.activeCount - stats.expiredCount} dari total`}
         />
         <StatCard 
           title="Kadaluarsa" 
-          value={stats?.expiredCount || 0} 
+          value={stats.expiredCount} 
           icon="fa-exclamation-triangle" 
           color="danger" 
         />
@@ -108,7 +129,10 @@ const Dashboard = () => {
       <ChartContainer stats={stats} />
 
       {/* Tabel Dokumen */}
-      <DocumentTable documents={documents} loading={loading} />
+      <DocumentTable 
+        documents={documents} 
+        loading={false} 
+      />
     </div>
   );
 };

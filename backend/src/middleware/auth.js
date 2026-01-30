@@ -15,10 +15,7 @@ export async function requireAuth(req, res, next) {
     try {
       payload = jwt.verify(token, secret);
     } catch (err) {
-      // Ini membantu debug (token salah/expired/secret beda)
-      return res
-        .status(401)
-        .json({ message: `Unauthorized: ${err.name || "invalid token"}` });
+      return res.status(401).json({ message: `Unauthorized: ${err.name || "invalid token"}` });
     }
 
     const userId = payload.sub;
@@ -37,4 +34,20 @@ export async function requireAuth(req, res, next) {
     console.error("requireAuth error:", e);
     return res.status(401).json({ message: "Unauthorized" });
   }
+}
+
+// ✅ Middleware untuk cek role admin
+export function isAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized: user not authenticated" });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      message: 'Akses ditolak. Hanya admin yang dapat mengakses.', 
+      code: 'FORBIDDEN' 
+    });
+  }
+
+  next();
 }

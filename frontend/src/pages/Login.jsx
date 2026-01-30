@@ -1,82 +1,122 @@
-import { useState } from "react";
-import { login } from "../api/auth";
+import React, { useState } from 'react';
+import './Login.css';
 
-export default function LoginPage() {
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [err, setErr] = useState("");
+const Login = ({ onSuccess }) => {
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (e) => {
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setErr("");
+    setError('');
     setLoading(true);
+
     try {
-      const data = await login(identifier, password);
-      localStorage.setItem("token", data.token);
-      window.location.href = "/"; // atau halaman dashboard kamu
-    } catch (e) {
-      setErr(e.message);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login gagal');
+      }
+
+      // ✅ Simpan token dan user data (termasuk role) ke localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user)); // ✅ Pastikan role tersimpan di sini
+
+      // ✅ Panggil callback onSuccess dengan role
+      if (onSuccess) {
+        onSuccess(data.user.role); // Kirim role ke App.jsx
+      }
+
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow p-6">
-        <h1 className="text-2xl font-semibold">Login</h1>
-        <p className="text-slate-500 mt-1 text-sm">
-          Masuk untuk mengakses MOU Tracking
-        </p>
+    <div className="login-container">
+      <div className="login-box">
+        <div className="login-header">
+          <h1>Sistem Tracking MoU & PKS</h1>
+          <p>Masuk ke akun Anda</p>
+        </div>
 
-        {err && (
-          <div className="mt-4 rounded-lg bg-red-50 text-red-700 px-3 py-2 text-sm">
-            {err}
+        {error && (
+          <div className="alert alert-error">
+            <i className="fas fa-exclamation-triangle"></i>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Username / Email
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label htmlFor="username">
+              <i className="fas fa-user"></i> Username
             </label>
             <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-400"
-              placeholder="admin atau admin@kantor.local"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              autoComplete="username"
+              type="text"
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              required
+              placeholder="Masukkan username"
+              disabled={loading}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Password
+          <div className="form-group">
+            <label htmlFor="password">
+              <i className="fas fa-lock"></i> Password
             </label>
             <input
               type="password"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-400"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              placeholder="Masukkan password"
+              disabled={loading}
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-slate-900 text-white py-2 font-medium hover:bg-slate-800 disabled:opacity-60"
-          >
-            {loading ? "Memproses..." : "Login"}
+          <button type="submit" className="btn-login" disabled={loading}>
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Memproses...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-sign-in-alt"></i>
+                Masuk
+              </>
+            )}
           </button>
         </form>
-
-        <div className="mt-6 text-xs text-slate-500">
-          Internal system • Jangan bagikan akun Anda
-        </div>
       </div>
     </div>
   );
-}
+};
+
+export default Login;

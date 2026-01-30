@@ -11,8 +11,8 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler, // ✅ TAMBAHKAN INI
 } from 'chart.js';
-import './ChartContainer.css';
 
 ChartJS.register(
   CategoryScale,
@@ -23,7 +23,8 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler, // ✅ TAMBAHKAN INI
 );
 
 const ChartContainer = ({ stats }) => {

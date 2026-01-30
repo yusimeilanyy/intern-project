@@ -1,44 +1,39 @@
-// src/components/MoUList.jsx
-import MoUCard from './MouCard';
-import MoUListEmpty from './MoUListEmpty';
+// Dashboard.jsx atau file parent
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import MoUList from './components/MoUList';
 
-export default function MoUList({ mous, onEdit, onDelete }) {
-  // Jika mous tidak ada atau bukan array, tampilkan empty state
-  if (!mous || !Array.isArray(mous)) {
-    return <MoUListEmpty />;
-  }
+export default function Dashboard() {
+  const [mous, setMous] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Jika kosong, tampilkan pesan kosong
-  if (mous.length === 0) {
-    return <MoUListEmpty />;
-  }
+  // ✅ FETCH DENGAN CACHE-BUSTING
+  useEffect(() => {
+    const fetchMoUs = async () => {
+      try {
+        const response = await axios.get(
+          `/api/mous?category=pemda&t=${Date.now()}` // ← TAMBAHKAN INI
+        );
+        setMous(response.data);
+      } catch (error) {
+        console.error('Error fetching MoUs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMoUs();
+  }, []); // [] = hanya dijalankan sekali saat mount
+
+  const handleAdd = () => {
+    // Setelah tambah dokumen, refetch data
+    axios.get(`/api/mous?category=pemda&t=${Date.now()}`)
+      .then(res => setMous(res.data));
+  };
 
   return (
-    <div className="border rounded-lg shadow overflow-x-auto">
-      {/* Header Tabel */}
-      <div className="grid grid-cols-12 gap-2 p-3 border-b bg-gray-50 font-medium text-sm text-gray-700">
-        <div className="col-span-1">Tingkat</div>
-        <div className="col-span-1">Jenis</div>
-        <div className="col-span-2">PIC BPSDMP</div>
-        <div className="col-span-2">PIC Pemerintah</div>
-        <div className="col-span-2">Tanggal Dimulai</div>
-        <div className="col-span-2">Tanggal Berakhir</div>
-        <div className="col-span-1">Status</div>
-        <div className="col-span-1">Pemilik</div>
-        <div className="col-span-1">Aksi</div>
-      </div>
-
-      {/* Daftar MoU */}
-      <div>
-        {mous.map(mou => (
-          <MoUCard
-            key={mou.id}
-            mou={mou}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ))}
-      </div>
+    <div>
+      <MoUList mous={mous} />
     </div>
   );
 }
