@@ -56,7 +56,7 @@ const DocumentTable = ({ documents, loading }) => {
                 <tr key={doc.id || index}>
                   <td>{index + 1}</td>
                   <td>
-                    <span className={`doc-type doc-type-${doc.type?.toLowerCase()}`}>
+                    <span className={`doc-type doc-type-${doc.documentType?.toLowerCase()}`}>
                       {doc.type || 'MoU/PKS'}
                     </span>
                   </td>

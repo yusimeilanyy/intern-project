@@ -62,105 +62,88 @@ export default function PemdaContent() {
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
   const [loading, setLoading] = useState(true);
 
-  // ✅ PERBAIKAN: Function untuk fetch data dari database
-  const fetchMouData = async () => {
-    try {
-      setLoading(true);
-      const data = await apiFetch(`/dashboard?t=${Date.now()}`);
-      
-      // Filter hanya dokumen kategori pemda
-      const mousData = Array.isArray(data?.documents) 
+  // Load data dari DATABASE
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await apiFetch(`/dashboard?t=${Date.now()}`);
+        
+        // ✅ Pastikan mous selalu array
+        const mousData = Array.isArray(data?.documents) 
         ? data.documents.filter(doc => doc.category === 'pemda')
         : [];
-      
-      setMous(mousData);
-      console.log("✅ MoU data loaded:", mousData.length, "items");
-    } catch (e) {
-      console.error("❌ Error loading MoU data:", e);
-      alert(`Gagal load data dari database: ${e.message}`);
-      setMous([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load data dari DATABASE saat pertama kali
-  useEffect(() => {
-    fetchMouData();
+        setMous(mousData);
+        
+        console.log("MoU data loaded:", mousData.length, "items");
+      } catch (e) {
+        console.error("Error loading MoU data:", e);
+        alert(`Gagal load data dari database: ${e.message}`);
+        setMous([]); // ✅ Pastikan tetap array kosong jika error
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const handleSave = async (data) => {
-    try {
-      const {
-        finalDocumentFile,
-        finalDocumentName,
-        finalDocumentUrl,
-        ...payloadObj
-      } = data;
+  try {
+    const {
+      finalDocumentFile,
+      finalDocumentName,
+      finalDocumentUrl,
+      ...payloadObj
+    } = data;
 
-      const fd = new FormData();
-      fd.append("category", "pemda");
-      
-      // ✅ PERBAIKAN: Pastikan documentType masuk ke payload
-      const payloadToSend = {
-        ...payloadObj,
-        documentType: payloadObj.documentType || 'MoU', // Default ke MoU jika kosong
-        finalDocumentName: finalDocumentName || "",
-        finalDocumentUrl: finalDocumentUrl || "",
-      };
-      
-      console.log("📤 Sending payload:", payloadToSend);
-      fd.append("payload", JSON.stringify(payloadToSend));
+    const fd = new FormData();
+    fd.append("category", "pemda");
+    
+    // ✅ HANYA sekali append payload dengan data yang benar
+    const payloadToSend = {
+      ...payloadObj,
+      finalDocumentName: finalDocumentName || "",
+      finalDocumentUrl: finalDocumentUrl || "",
+    };
+    
+    fd.append("payload", JSON.stringify(payloadToSend));
 
-      // Jika user pilih file baru, kirim file
-      if (finalDocumentFile) {
-        fd.append("file", finalDocumentFile);
-      }
-
-      if (editingMou) {
-        // UPDATE
-        const updated = await apiFetch(`/mous/${editingMou.id}`, {
-          method: "PUT",
-          body: fd,
-        });
-
-        console.log("✅ Update berhasil:", updated);
-        
-        // ✅ PERBAIKAN: Refresh data dari database setelah update
-        await fetchMouData();
-        setEditingMou(null);
-      } else {
-        // CREATE
-        const created = await apiFetch(`/mous`, {
-          method: "POST",
-          body: fd,
-        });
-
-        console.log("✅ Create berhasil:", created);
-        
-        // ✅ PERBAIKAN: Refresh data dari database setelah create
-        await fetchMouData();
-      }
-
-      setShowForm(false);
-      alert("✅ Dokumen berhasil disimpan!");
-    } catch (e) {
-      console.error("❌ Error saving:", e);
-      alert(`Gagal simpan ke database: ${e.message}`);
+    // kalau user pilih file baru, kirim file
+    if (finalDocumentFile) {
+      fd.append("file", finalDocumentFile);
     }
-  };
+
+    if (editingMou) {
+      const updated = await apiFetch(`/mous/${editingMou.id}`, {
+        method: "PUT",
+        body: fd,
+      });
+
+      setMous(mous.map(m => (m.id === editingMou.id ? updated : m)));
+      setEditingMou(null);
+    } else {
+      const created = await apiFetch(`/mous`, {
+        method: "POST",
+        body: fd,
+      });
+
+      setMous([created, ...mous]);
+    }
+
+    setShowForm(false);
+  } catch (e) {
+    console.error(e);
+    alert(`Gagal simpan ke database: ${e.message}`);
+  }
+};
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus dokumen ini?')) return;
+    if (!window.confirm('Yakin ingin menghapus MoU ini?')) return;
 
     try {
       await apiFetch(`/mous/${id}`, { method: "DELETE" });
-      
-      // ✅ PERBAIKAN: Refresh data dari database setelah delete
-      await fetchMouData();
-      alert("✅ Dokumen berhasil dihapus!");
+      setMous(mous.filter(mou => mou.id !== id));
     } catch (e) {
-      console.error("❌ Error deleting:", e);
+      console.error(e);
       alert(`Gagal hapus dari database: ${e.message}`);
     }
   };
@@ -213,7 +196,7 @@ export default function PemdaContent() {
       : 'bg-green-100 text-green-800';
   };
 
-  // Preview dokumen support URL /uploads + base64 lama
+  // ✅ UBAH: Preview dokumen support URL /uploads + base64 lama
   const handlePreview = (fileContent, fileName) => {
     if (!fileContent) {
       alert("File tidak tersedia.");
@@ -246,7 +229,7 @@ export default function PemdaContent() {
     // 2) data lama: base64 (data:)
     if (fileType === 'pdf') {
       let blob;
-      if (typeof fileContent === "string" && fileContent.startsWith("data:")) {
+      if (typeof fileContent === "string" && fileContent.startsWith("")) {
         blob = dataURLtoBlob(fileContent);
       } else {
         blob = new Blob([fileContent], { type: 'application/pdf' });
@@ -266,7 +249,7 @@ export default function PemdaContent() {
       });
     } else if (fileType === 'docx') {
       let blob;
-      if (typeof fileContent === "string" && fileContent.startsWith("data:")) {
+      if (typeof fileContent === "string" && fileContent.startsWith("")) {
         blob = dataURLtoBlob(fileContent);
       } else {
         blob = new Blob([fileContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
@@ -412,6 +395,7 @@ export default function PemdaContent() {
                         {mou.notes || '-'}
                       </td>
 
+                      {/* ✅ UBAH: tampilkan dokumen dari URL */}
                       <td className="px-4 py-2 text-center whitespace-nowrap">
                         {mou.finalDocumentUrl ? (
                           <button
@@ -500,7 +484,8 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
   ];
 
   const [formData, setFormData] = useState({
-    documentType: 'MoU', // ✅ PERBAIKAN: Default ke 'MoU'
+    // ✅ PERUBAHAN 1: documentType default kosong (bukan 'MoU')
+    documentType: '', 
     level: '',
     institutionalLevel: '',
     type: '',
@@ -531,7 +516,8 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
       const isCustom = initialType && !knownTypes.includes(initialType);
 
       setFormData({
-        documentType: initialData.documentType || 'MoU', // ✅ PERBAIKAN: Default 'MoU'
+        // ✅ PERUBAHAN 2: documentType default kosong saat edit (bukan 'MoU')
+        documentType: initialData.documentType || '', 
         level: initialData.level || '',
         institutionalLevel: initialData.institutionalLevel || '',
         type: isCustom ? 'Lainnya' : initialType,
@@ -592,27 +578,20 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
     }));
   };
 
-const handleRegencyChange = (e) => {
-  const val = e.target.value;
-  setSelectedRegency(val);
+  const handleRegencyChange = (e) => {
+    const val = e.target.value;
+    setSelectedRegency(val);
 
-  const regencyName = regencies[selectedProvince]?.find(r => r.id === val)?.name || '';
-  
-  // ✅ SESUDAH: Hanya tampilkan "Pemerintah Kabupaten [nama]" atau "Pemerintah Kota [nama]"
-  let processedRegencyName = regencyName;
-  if (processedRegencyName.startsWith('Kab. ')) {
-    processedRegencyName = 'Kabupaten ' + processedRegencyName.substring(5);
-  } else if (processedRegencyName.startsWith('Kota ')) {
-    processedRegencyName = 'Kota ' + processedRegencyName.substring(5);
-  }
-  const instLevel = `Pemerintah ${processedRegencyName}`;
+    const provinceName = provinces.find(p => p.id === selectedProvince)?.name || '';
+    const regencyName = regencies[selectedProvince]?.find(r => r.id === val)?.name || '';
+    const instLevel = `Pemerintah Kabupaten/Kota ${regencyName}, ${provinceName}`;
 
-  setFormData(prev => ({
-    ...prev,
-    regencyId: val,
-    institutionalLevel: instLevel
-  }));
-};
+    setFormData(prev => ({
+      ...prev,
+      regencyId: val,
+      institutionalLevel: instLevel
+    }));
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -629,20 +608,12 @@ const handleRegencyChange = (e) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // ✅ PERBAIKAN: Validasi documentType tidak boleh kosong
-    if (!formData.documentType) {
-      alert("Jenis Dokumen wajib dipilih!");
-      return;
-    }
-
     const finalType =
       formData.type === 'Lainnya'
         ? (formData.customType || '').trim()
         : formData.type;
 
     const { customType, ...rest } = formData;
-
-    console.log("📤 Form submit data:", { ...rest, type: finalType });
 
     onSubmit({
       ...rest,
@@ -657,22 +628,20 @@ const handleRegencyChange = (e) => {
           <h2 className="text-xl font-bold mb-4">
             {initialData ? 'Edit Dokumen' : 'Tambah Dokumen Pemerintah Daerah'}
           </h2>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* ✅ DROPDOWN JENIS DOKUMEN - WAJIB */}
+            {/* ✅ DROPDOWN JENIS DOKUMEN */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Jenis Dokumen <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Jenis Dokumen</label>
               <select
                 name="documentType"
                 value={formData.documentType}
                 onChange={handleChange}
-                required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 <option value="">Pilih jenis dokumen</option>
                 <option value="MoU">MoU (Memorandum of Understanding)</option>
-                <option value="PKS">PKS (Perjanjian Kerja Sama)</option>
+                <option value="PKS">PKS (Perjanjian Kerjasama)</option>
               </select>
             </div>
 

@@ -1,0 +1,84 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+import authRoutes from "./routes/auth.js";
+import usersRoutes from "./routes/users.js";
+import mousRoutes from "./routes/mous.js";
+import { requireAuth } from "./middleware/auth.js";
+
+dotenv.config();
+
+// ✅ Get __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 4001;
+
+// ========================================
+// MIDDLEWARE
+// ========================================
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ✅ CRITICAL: Serve static files from uploads folder
+// Ini yang membuat /uploads/filename.pdf accessible dari frontend
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
+// Optional: Serve all public files
+app.use('/public', express.static(path.join(__dirname, '../public')));
+
+// ✅ Request logging (untuk debugging)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+// ========================================
+// ROUTES
+// ========================================
+app.use("/api/auth", authRoutes);
+app.use("/api/users", usersRoutes);
+app.use("/api/mous", mousRoutes);
+
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({ 
+    status: "OK", 
+    timestamp: new Date().toISOString(),
+    uploadsPath: path.join(__dirname, '../public/uploads')
+  });
+});
+
+// ✅ 404 handler - harus di paling bawah
+app.use((req, res) => {
+  console.log(`❌ Route not found: ${req.method} ${req.url}`);
+  res.status(404).json({ 
+    message: "Route tidak ditemukan",
+    path: req.url 
+  });
+});
+
+// ✅ Global error handler
+app.use((err, req, res, next) => {
+  console.error('❌ Server error:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal server error'
+  });
+});
+
+// ========================================
+// START SERVER
+// ========================================
+app.listen(PORT, () => {
+  console.log('========================================');
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📂 Uploads folder: ${path.join(__dirname, '../public/uploads')}`);
+  console.log(`🌐 API Base: http://localhost:${PORT}/api`);
+  console.log('========================================');
+});
+
+export default app;

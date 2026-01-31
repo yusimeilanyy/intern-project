@@ -11,7 +11,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler, // ✅ TAMBAHKAN INI
+  Filler,
 } from 'chart.js';
 
 ChartJS.register(
@@ -24,7 +24,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler, // ✅ TAMBAHKAN INI
+  Filler,
 );
 
 const ChartContainer = ({ stats }) => {
@@ -40,6 +40,7 @@ const ChartContainer = ({ stats }) => {
         ],
         backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
         borderWidth: 0,
+        hoverOffset: 10, // Hover animation
       },
     ],
   };
@@ -52,11 +53,13 @@ const ChartContainer = ({ stats }) => {
         label: 'Aktif',
         data: [stats.mou?.active || 0, stats.pks?.active || 0],
         backgroundColor: '#10b981',
+        hoverBackgroundColor: '#1dbf7a', // Hover effect color
       },
       {
         label: 'Kadaluarsa',
         data: [stats.mou?.expired || 0, stats.pks?.expired || 0],
         backgroundColor: '#ef4444',
+        hoverBackgroundColor: '#f75c5c', // Hover effect color
       },
     ],
   };
@@ -90,6 +93,14 @@ const ChartContainer = ({ stats }) => {
     maintainAspectRatio: false,
     plugins: {
       legend: { position: 'bottom' },
+      tooltip: {
+        backgroundColor: '#0c4a6e',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        bodyFont: { weight: 'bold' },
+        borderColor: 'rgba(0, 51, 108, 0.8)',
+        borderWidth: 2,
+      },
     },
     scales: {
       y: {
@@ -118,15 +129,15 @@ const ChartContainer = ({ stats }) => {
             <i className="fas fa-chart-bar"></i> Perbandingan MoU vs PKS
           </h3>
           <div className="chart-wrapper">
-            <Bar 
-              data={comparisonData} 
-              options={{ 
-                ...options, 
-                scales: { 
-                  x: { stacked: true }, 
-                  y: { stacked: true, beginAtZero: true } 
-                } 
-              }} 
+            <Bar
+              data={comparisonData}
+              options={{
+                ...options,
+                scales: {
+                  x: { stacked: true },
+                  y: { stacked: true, beginAtZero: true }
+                }
+              }}
             />
           </div>
         </div>

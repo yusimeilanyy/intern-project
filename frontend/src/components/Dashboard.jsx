@@ -9,6 +9,9 @@ const Dashboard = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // ✅ TAMBAHAN: Filter untuk jenis dokumen
+  const [documentTypeFilter, setDocumentTypeFilter] = useState('all'); // 'all', 'MoU', 'PKS'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,10 +25,12 @@ const Dashboard = () => {
           throw new Error('Token tidak ditemukan. Silakan login terlebih dahulu.');
         }
         
+        console.log("📊 Fetching dashboard data...");
+        
         // 1. Fetch data dari API backend dengan token
-        const response = await fetch('/api/dashboard', {
+        const response = await fetch(`/api/dashboard?t=${Date.now()}`, {
           headers: {
-            'Authorization': `Bearer ${token}`  // ✅ Tambahkan token
+            'Authorization': `Bearer ${token}`
           }
         });
         
@@ -38,6 +43,12 @@ const Dashboard = () => {
         
         const data = await response.json();
         
+        console.log("✅ Dashboard data received:", {
+          totalMou: data.totalMou,
+          totalPks: data.totalPks,
+          totalDocuments: data.documents?.length
+        });
+        
         // 2. Simpan data ke state
         setStats({
           totalMou: data.totalMou,
@@ -48,9 +59,11 @@ const Dashboard = () => {
           pks: data.pks
         });
         
-        setDocuments(data.documents);
+        // ✅ PERBAIKAN: Simpan dokumen dengan validasi
+        setDocuments(Array.isArray(data.documents) ? data.documents : []);
+        
       } catch (err) {
-        console.error("Error fetching dashboard data:", err);
+        console.error("❌ Error fetching dashboard data:", err);
         setError(err.message);
         
         // Jika error 401, hapus token dan redirect ke login
@@ -66,10 +79,16 @@ const Dashboard = () => {
     // 3. Fetch data saat komponen dimount
     fetchData();
     
-    // 4. Opsional: Auto-refresh setiap 5 menit
+    // 4. Auto-refresh setiap 5 menit
     const interval = setInterval(fetchData, 300000);
     return () => clearInterval(interval);
   }, []);
+
+  // ✅ TAMBAHAN: Filter dokumen berdasarkan documentType
+  const filteredDocuments = documents.filter(doc => {
+    if (documentTypeFilter === 'all') return true;
+    return doc.documentType === documentTypeFilter;
+  });
 
   if (loading) {
     return (
@@ -94,7 +113,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <h1 className="dashboard-title">Dashboard MoU & PKS</h1>
+      <h1 className="dashboard-title">Ringkasan MoU & PKS</h1>
       
       {/* Statistik Utama */}
       <div className="stats-grid">
@@ -128,9 +147,70 @@ const Dashboard = () => {
       {/* Grafik */}
       <ChartContainer stats={stats} />
 
-      {/* Tabel Dokumen */}
+      {/* ✅ TAMBAHAN: Filter Jenis Dokumen */}
+      <div className="filter-section" style={{ 
+        marginBottom: '20px', 
+        padding: '15px', 
+        backgroundColor: '#fff', 
+        borderRadius: '8px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <span style={{ fontWeight: '600', color: '#374151' }}>Filter Jenis Dokumen:</span>
+          <button
+            onClick={() => setDocumentTypeFilter('all')}
+            className={`filter-btn ${documentTypeFilter === 'all' ? 'active' : ''}`}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: documentTypeFilter === 'all' ? 'none' : '1px solid #e5e7eb',
+              backgroundColor: documentTypeFilter === 'all' ? '#3b82f6' : '#fff',
+              color: documentTypeFilter === 'all' ? '#fff' : '#374151',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            Semua ({documents.length})
+          </button>
+          <button
+            onClick={() => setDocumentTypeFilter('MoU')}
+            className={`filter-btn ${documentTypeFilter === 'MoU' ? 'active' : ''}`}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: documentTypeFilter === 'MoU' ? 'none' : '1px solid #e5e7eb',
+              backgroundColor: documentTypeFilter === 'MoU' ? '#3b82f6' : '#fff',
+              color: documentTypeFilter === 'MoU' ? '#fff' : '#374151',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            MoU ({documents.filter(d => d.documentType === 'MoU').length})
+          </button>
+          <button
+            onClick={() => setDocumentTypeFilter('PKS')}
+            className={`filter-btn ${documentTypeFilter === 'PKS' ? 'active' : ''}`}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: documentTypeFilter === 'PKS' ? 'none' : '1px solid #e5e7eb',
+              backgroundColor: documentTypeFilter === 'PKS' ? '#10b981' : '#fff',
+              color: documentTypeFilter === 'PKS' ? '#fff' : '#374151',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            PKS ({documents.filter(d => d.documentType === 'PKS').length})
+          </button>
+        </div>
+      </div>
+
+      {/* Tabel Dokumen dengan filter */}
       <DocumentTable 
-        documents={documents} 
+        documents={filteredDocuments} 
         loading={false} 
       />
     </div>

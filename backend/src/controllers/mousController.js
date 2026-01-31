@@ -12,99 +12,117 @@ const __dirname = path.dirname(__filename);
 // ========================================
 export const getDashboardData = async (req, res) => {
   try {
-    // 1. Hitung total MoU (category = 'mou' atau 'pemda')
-    const [mouCount] = await pool.query(
-      "SELECT COUNT(*) AS total FROM mous WHERE category IN ('mou', 'pemda')"
-    );
+    console.log("📊 Fetching dashboard data...");
     
-    // 2. Hitung total PKS (category = 'pks')
-    const [pksCount] = await pool.query(
-      "SELECT COUNT(*) AS total FROM mous WHERE category = 'pks'"
-    );
-    
-    // 3. Hitung MoU aktif/kadaluarsa
-    const [activeMou] = await pool.query(`
-      SELECT COUNT(*) AS active 
-      FROM mous 
-      WHERE category IN ('mou', 'pemda') 
-        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
-        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) > CURDATE()
-    `);
-    
-    const [expiredMou] = await pool.query(`
-      SELECT COUNT(*) AS expired 
-      FROM mous 
-      WHERE category IN ('mou', 'pemda') 
-        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
-        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) <= CURDATE()
-    `);
-    
-    // 4. Hitung PKS aktif/kadaluarsa
-    const [activePks] = await pool.query(`
-      SELECT COUNT(*) AS active 
-      FROM mous 
-      WHERE category = 'pks' 
-        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
-        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) > CURDATE()
-    `);
-    
-    const [expiredPks] = await pool.query(`
-      SELECT COUNT(*) AS expired 
-      FROM mous 
-      WHERE category = 'pks' 
-        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
-        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) <= CURDATE()
-    `);
-
-    // 5. Total aktif & kadaluarsa (semua kategori)
-    const activeCount = activeMou[0].active + activePks[0].active;
-    const expiredCount = expiredMou[0].expired + expiredPks[0].expired;
-
-    // 6. Ambil daftar dokumen terbaru (semua kategori)
-    const [documents] = await pool.query(`
+    // 1. Ambil SEMUA dokumen dengan detail lengkap
+    const [allDocs] = await pool.query(`
       SELECT 
         id,
-        category AS type,
-        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.document_number')) AS document_number,
-        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.partner_name')) AS partner_name,
-        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.start_date')) AS start_date,
-        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) AS end_date
-      FROM mous
-      WHERE JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
-      ORDER BY 
-        STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')), '%Y-%m-%d') DESC
-      LIMIT 10
+        category,
+        payload,
+        created_at,
+        updated_at
+      FROM mous 
+      ORDER BY created_at DESC
     `);
 
-    // 7. Format status dokumen
-    const formattedDocs = documents.map(doc => ({
-      id: doc.id,
-      type: doc.type === 'pemda' ? 'MoU' : doc.type.toUpperCase(),
-      documentNumber: doc.document_number || 'N/A',
-      partnerName: doc.partner_name || 'N/A',
-      startDate: doc.start_date || 'N/A',
-      endDate: doc.end_date || 'N/A',
-      status: doc.end_date && new Date(doc.end_date) > new Date() ? 'active' : 'expired'
-    }));
+    // 2. Parse semua dokumen dan ekstrak field penting
+    const documents = allDocs.map(doc => {
+      let payload = {};
+      try {
+        payload = typeof doc.payload === 'string' ? JSON.parse(doc.payload) : doc.payload;
+      } catch (e) {
+        console.error(`Error parsing payload for doc ${doc.id}:`, e);
+        payload = {};
+      }
 
-    // 8. Kembalikan data
-    res.json({
-      totalMou: mouCount[0].total,
-      totalPks: pksCount[0].total,
+      const documentType = payload.documentType || (doc.category === 'pks' ? 'PKS' : 'MoU');
+
+      return {
+        id: doc.id,
+        category: doc.category, // 'mou', 'pemda', 'pks'
+        documentType: documentType,
+        type: payload.type || '-',
+        institutionalLevel: payload.institutionalLevel || '-',
+        bpsdmpPIC: payload.bpsdmpPIC || '-',
+        partnerPIC: payload.partnerPIC || '-',
+        partnerPICPhone: payload.partnerPICPhone || '-',
+        officeDocNumber: payload.officeDocNumber || '-',
+        partnerDocNumber: payload.partnerDocNumber || '-',
+        owner: payload.owner || '-',
+        notes: payload.notes || '-',
+        cooperationStartDate: payload.cooperationStartDate || '-',
+        cooperationEndDate: payload.cooperationEndDate || '-',
+        status: payload.status || 'Baru',
+        finalDocumentName: payload.finalDocumentName || '',
+        finalDocumentUrl: payload.finalDocumentUrl || '',
+        provinceId: payload.provinceId || '',
+        regencyId: payload.regencyId || '',
+        level: payload.level || '',
+        created_at: doc.created_at,
+        updated_at: doc.updated_at
+      };
+    });
+
+    // 3. Hitung total berdasarkan CATEGORY
+    const totalMou = documents.filter(d => d.category === 'mou' || d.category === 'pemda').length;
+    const totalPks = documents.filter(d => d.category === 'pks').length;
+
+    // 4. Hitung aktif/kadaluarsa berdasarkan tanggal
+    const now = new Date();
+    const activeMou = documents.filter(d => 
+      (d.category === 'mou' || d.category === 'pemda') && 
+      d.cooperationEndDate !== '-' && 
+      new Date(d.cooperationEndDate) > now
+    ).length;
+
+    const expiredMou = documents.filter(d => 
+      (d.category === 'mou' || d.category === 'pemda') && 
+      d.cooperationEndDate !== '-' && 
+      new Date(d.cooperationEndDate) <= now
+    ).length;
+
+    const activePks = documents.filter(d => 
+      d.category === 'pks' && 
+      d.cooperationEndDate !== '-' && 
+      new Date(d.cooperationEndDate) > now
+    ).length;
+
+    const expiredPks = documents.filter(d => 
+      d.category === 'pks' && 
+      d.cooperationEndDate !== '-' && 
+      new Date(d.cooperationEndDate) <= now
+    ).length;
+
+    const activeCount = activeMou + activePks;
+    const expiredCount = expiredMou + expiredPks;
+
+    // 5. Format response
+    const response = {
+      totalMou,
+      totalPks,
       activeCount,
       expiredCount,
       mou: {
-        active: activeMou[0].active,
-        expired: expiredMou[0].expired
+        active: activeMou,
+        expired: expiredMou
       },
       pks: {
-        active: activePks[0].active,
-        expired: expiredPks[0].expired
+        active: activePks,
+        expired: expiredPks
       },
-      documents: formattedDocs
+      documents // ✅ Kirim semua dokumen dengan field lengkap
+    };
+
+    console.log("✅ Dashboard data:", {
+      totalMou,
+      totalPks,
+      totalDocuments: documents.length
     });
+
+    res.json(response);
   } catch (error) {
-    console.error("Dashboard data error:", error);
+    console.error("❌ Dashboard data error:", error);
     res.status(500).json({ message: "Gagal mengambil data dashboard" });
   }
 };
@@ -116,7 +134,6 @@ export const getDocumentPreview = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 1. Ambil dokumen dari tabel mous
     const [rows] = await pool.query(
       "SELECT payload FROM mous WHERE id = ?",
       [id]
@@ -126,7 +143,6 @@ export const getDocumentPreview = async (req, res) => {
       return res.status(404).json({ message: "Dokumen tidak ditemukan" });
     }
 
-    // 2. Ekstrak file_path dari payload
     const payload = JSON.parse(rows[0].payload);
     const filePath = payload.file_path;
 
@@ -134,10 +150,8 @@ export const getDocumentPreview = async (req, res) => {
       return res.status(404).json({ message: "File path tidak ditemukan di dokumen" });
     }
 
-    // 3. Pastikan path lengkap ke direktori public
     const fullPath = path.join(__dirname, '../public', filePath);
 
-    // 4. Cek apakah file ada
     if (!fs.existsSync(fullPath)) {
       console.error("File tidak ditemukan di:", fullPath);
       return res.status(404).json({ 
@@ -146,7 +160,6 @@ export const getDocumentPreview = async (req, res) => {
       });
     }
 
-    // 5. Kirim file sebagai response
     const mimeType = filePath.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream';
     
     res.setHeader('Content-Type', mimeType);
@@ -168,38 +181,39 @@ export const getAllMous = async (req, res) => {
   try {
     const { category } = req.query;
     
-    // ✅ PERBAIKAN: Query yang sudah diperbaiki
-    let query = `
-      SELECT 
-        id,
-        category AS type,
-        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.document_number')) AS document_number,
-        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.partner_name')) AS partner_name,
-        COALESCE(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.start_date')), 'N/A') AS start_date,
-        COALESCE(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')), 'N/A') AS end_date
-      FROM mous
-    `;
+    let query = `SELECT id, category, payload, created_at FROM mous`;
     
-    // ✅ PERBAIKAN: Jika category = 'pemda', ambil juga kategori 'mou'
     if (category === 'pemda') {
       query += ` WHERE category IN ('mou', 'pemda')`;
     } else if (category) {
       query += ` WHERE category = '${category}'`;
     }
     
-    query += ` ORDER BY id DESC`;
+    query += ` ORDER BY created_at DESC`;
     
     const [documents] = await pool.query(query);
     
-    // Format data
-    const formattedDocs = documents.map(doc => ({
-      id: doc.id,
-      type: doc.type === 'pemda' ? 'MoU' : doc.type.toUpperCase(),
-      documentNumber: doc.document_number || 'N/A',
-      partnerName: doc.partner_name || 'N/A',
-      startDate: doc.start_date || 'N/A',
-      endDate: doc.end_date || 'N/A'
-    }));
+    const formattedDocs = documents.map(doc => {
+      let payload = {};
+      try {
+        payload = typeof doc.payload === 'string' ? JSON.parse(doc.payload) : doc.payload;
+      } catch (e) {
+        console.error(`Error parsing payload for doc ${doc.id}:`, e);
+      }
+
+      // ✅ PERBAIKAN: Ekstrak documentType
+      const documentType = payload.documentType || (doc.category === 'pks' ? 'PKS' : 'MoU');
+
+      return {
+        id: doc.id,
+        category: doc.category,
+        documentType: documentType, // ✅ TAMBAHAN
+        documentNumber: payload.officeDocNumber || 'N/A',
+        partnerName: payload.institutionalLevel || 'N/A',
+        startDate: payload.cooperationStartDate || 'N/A',
+        endDate: payload.cooperationEndDate || 'N/A'
+      };
+    });
     
     res.json(formattedDocs);
   } catch (error) {
@@ -217,7 +231,19 @@ export const getMouById = async (req, res) => {
       return res.status(404).json({ message: "MoU tidak ditemukan" });
     }
     
-    res.json(rows[0]);
+    // Parse payload
+    let payload = {};
+    try {
+      payload = typeof rows[0].payload === 'string' ? JSON.parse(rows[0].payload) : rows[0].payload;
+    } catch (e) {
+      console.error("Error parsing payload:", e);
+    }
+
+    res.json({
+      id: rows[0].id,
+      category: rows[0].category,
+      ...payload
+    });
   } catch (error) {
     console.error("Get mou by id error:", error);
     res.status(500).json({ message: "Gagal mengambil data MoU" });
@@ -228,22 +254,50 @@ export const createMou = async (req, res) => {
   try {
     const { category, payload } = req.body;
     
+    console.log("📝 Creating MoU:", { category, payload: JSON.parse(payload) });
+    
     if (!category || !payload) {
       return res.status(400).json({ message: "Category dan payload wajib diisi" });
     }
+
+    // ✅ PERBAIKAN: Parse payload dan validasi documentType
+    let parsedPayload = {};
+    try {
+      parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload;
+    } catch (e) {
+      return res.status(400).json({ message: "Payload tidak valid" });
+    }
+
+    // Pastikan documentType ada di payload
+    if (!parsedPayload.documentType) {
+      parsedPayload.documentType = category === 'pks' ? 'PKS' : 'MoU';
+    }
+
+    // Handle file upload jika ada
+    if (req.file) {
+      const fileUrl = `/uploads/${req.file.filename}`;
+      parsedPayload.finalDocumentUrl = fileUrl;
+      parsedPayload.finalDocumentName = req.file.originalname;
+      console.log("📎 File uploaded:", fileUrl);
+    }
     
     const [result] = await pool.query(
-      "INSERT INTO mous (category, payload) VALUES (?, ?)",
-      [category, JSON.stringify(payload)]
+      "INSERT INTO mous (category, payload, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
+      [category, JSON.stringify(parsedPayload)]
     );
     
+    console.log("✅ MoU created with ID:", result.insertId);
+
+    // Return data lengkap
     res.status(201).json({
       message: "MoU berhasil ditambahkan",
-      id: result.insertId
+      id: result.insertId,
+      category: category,
+      ...parsedPayload
     });
   } catch (error) {
-    console.error("Create mou error:", error);
-    res.status(500).json({ message: "Gagal menambahkan MoU" });
+    console.error("❌ Create mou error:", error);
+    res.status(500).json({ message: "Gagal menambahkan MoU", error: error.message });
   }
 };
 
@@ -252,19 +306,50 @@ export const updateMou = async (req, res) => {
     const { id } = req.params;
     const { category, payload } = req.body;
     
+    console.log("✏️ Updating MoU ID:", id, "Category:", category);
+
+    // ✅ PERBAIKAN: Parse payload dan validasi
+    let parsedPayload = {};
+    try {
+      parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload;
+    } catch (e) {
+      return res.status(400).json({ message: "Payload tidak valid" });
+    }
+
+    // Pastikan documentType ada
+    if (!parsedPayload.documentType) {
+      parsedPayload.documentType = category === 'pks' ? 'PKS' : 'MoU';
+    }
+
+    // Handle file upload baru jika ada
+    if (req.file) {
+      const fileUrl = `/uploads/${req.file.filename}`;
+      parsedPayload.finalDocumentUrl = fileUrl;
+      parsedPayload.finalDocumentName = req.file.originalname;
+      console.log("📎 New file uploaded:", fileUrl);
+    }
+    
     const [result] = await pool.query(
-      "UPDATE mous SET category = ?, payload = ? WHERE id = ?",
-      [category, JSON.stringify(payload), id]
+      "UPDATE mous SET category = ?, payload = ?, updated_at = NOW() WHERE id = ?",
+      [category, JSON.stringify(parsedPayload), id]
     );
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "MoU tidak ditemukan" });
     }
     
-    res.json({ message: "MoU berhasil diupdate" });
+    console.log("✅ MoU updated successfully");
+
+    // Return data lengkap
+    res.json({ 
+      message: "MoU berhasil diupdate",
+      id: parseInt(id),
+      category: category,
+      ...parsedPayload
+    });
   } catch (error) {
-    console.error("Update mou error:", error);
-    res.status(500).json({ message: "Gagal mengupdate MoU" });
+    console.error("❌ Update mou error:", error);
+    res.status(500).json({ message: "Gagal mengupdate MoU", error: error.message });
   }
 };
 
@@ -272,15 +357,38 @@ export const deleteMou = async (req, res) => {
   try {
     const { id } = req.params;
     
+    console.log("🗑️ Deleting MoU ID:", id);
+
+    // Get file info before deleting
+    const [rows] = await pool.query("SELECT payload FROM mous WHERE id = ?", [id]);
+    
+    if (rows[0]) {
+      try {
+        const payload = typeof rows[0].payload === 'string' ? JSON.parse(rows[0].payload) : rows[0].payload;
+        
+        // Delete file if exists
+        if (payload.finalDocumentUrl && payload.finalDocumentUrl.startsWith('/uploads/')) {
+          const filePath = path.join(__dirname, '../public', payload.finalDocumentUrl);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log("📎 File deleted:", filePath);
+          }
+        }
+      } catch (e) {
+        console.error("Error deleting file:", e);
+      }
+    }
+    
     const [result] = await pool.query("DELETE FROM mous WHERE id = ?", [id]);
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "MoU tidak ditemukan" });
     }
     
+    console.log("✅ MoU deleted successfully");
     res.json({ message: "MoU berhasil dihapus" });
   } catch (error) {
-    console.error("Delete mou error:", error);
+    console.error("❌ Delete mou error:", error);
     res.status(500).json({ message: "Gagal menghapus MoU" });
   }
 };

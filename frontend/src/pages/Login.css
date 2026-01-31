@@ -1,196 +1,138 @@
-/* Login.css - Tema Biru KOMDIGI/BPSDMP */
-
+/* Login.css - Tema Profesional Komdigi */
 .login-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #aaf7d8 0%, #fafafa 100%); /* Biru tua ke hijau tua */
+  background-color: var(--kominfo-white); /* Background putih */
   padding: 20px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .login-box {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+  background: var(--kominfo-white);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Soft shadow */
   width: 100%;
   max-width: 480px;
-  padding: 48px;
+  padding: 40px;
   position: relative;
   overflow: hidden;
-}
-
-/* Dekorasi sudut kiri atas */
-.login-box::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 120px;
-  height: 120px;
-  background: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%);
-  border-radius: 0 0 100% 0;
-  opacity: 0.15;
+  border: 1px solid var(--kominfo-navy); /* Navy border */
 }
 
 /* Header dengan logo */
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
-  position: relative;
-  z-index: 2;
+  margin-bottom: 24px;
 }
 
 .login-logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .login-logo-icon {
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%);
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  background-color: var(--kominfo-navy); /* Navy background */
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--kominfo-white); /* White text */
   font-weight: 700;
-  font-size: 24px;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
+  font-size: 20px;
+  box-shadow: 0 4px 15px rgba(0, 51, 108, 0.3);
 }
 
+/* Title */
 .login-header h1 {
-  font-size: 25px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--kominfo-navy); /* Navy for title */
   margin: 0;
   letter-spacing: -0.5px;
 }
 
 .login-header p {
   font-size: 14px;
-  color: #4b5563;
+  color: #6b7280;
   margin: 8px 0 0;
   font-weight: 500;
 }
 
 /* Form Group */
 .form-group {
-  margin-bottom: 24px;
-  position: relative;
-  z-index: 2;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.form-group label i {
-  color: #0284c7;
-  font-size: 13px;
+  color: var(--kominfo-navy); /* Navy color for labels */
+  margin-bottom: 8px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 14px 18px;
+  padding: 14px 16px;
   border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  font-size: 12px;
-  transition: all 0.3s ease;
+  border-radius: 8px;
+  font-size: 14px;
   background-color: #f9fafb;
   font-weight: 500;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #0284c7;
-  background-color: white;
-  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15);
-  transform: translateY(-1px);
-}
-
-.form-group input::placeholder {
-  color: #9ca3af;
+  border-color: var(--kominfo-navy); /* Focus with navy border */
+  background-color: var(--kominfo-white);
+  box-shadow: 0 0 0 4px rgba(0, 51, 108, 0.2);
 }
 
 /* Login Button */
 .btn-login {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%);
-  color: white;
+  background-color: var(--kominfo-navy); /* Navy for button */
+  color: var(--kominfo-white); /* White text */
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.4s ease;
+  transition: transform 0.2s, box-shadow 0.3s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
 }
 
-.btn-login::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
-  transform: scale(0);
-  transition: transform 0.5s ease;
-  z-index: 0;
-}
-
-.btn-login:hover::after {
-  transform: scale(1);
-}
-
-.btn-login span {
-  position: relative;
-  z-index: 1;
-}
-
-.btn-login:hover:not(:disabled) {
+/* Hover effect on button */
+.btn-login:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(2, 132, 199, 0.55);
+  box-shadow: 0 6px 20px rgba(0, 51, 108, 0.2);
 }
 
-.btn-login:active:not(:disabled) {
+.btn-login:active {
   transform: translateY(0);
 }
 
 .btn-login:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
 }
 
 /* Spinner */
 .spinner {
   border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top: 3px solid white;
+  border-top: 3px solid var(--kominfo-navy);
   border-radius: 50%;
   width: 20px;
   height: 20px;
@@ -211,20 +153,7 @@
   align-items: flex-start;
   gap: 12px;
   background-color: #fef2f2;
-  border-left: 4px solid #ef4444;
-  position: relative;
-  z-index: 2;
-}
-
-.alert::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 4px;
-  background: #ef4444;
-  border-radius: 12px 0 0 12px;
+  border-left: 4px solid #ef4444; /* Red error border */
 }
 
 .alert i {
@@ -246,8 +175,6 @@
   margin-top: 28px;
   padding-top: 24px;
   border-top: 1px solid #f3f4f6;
-  position: relative;
-  z-index: 2;
 }
 
 .login-footer p {
@@ -258,27 +185,15 @@
 }
 
 .login-footer a {
-  color: #0284c7;
+  color: var(--kominfo-navy); /* Navy footer link */
   text-decoration: none;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 .login-footer a:hover {
-  color: #0c4a6e;
+  color: #00B5AA; /* Hover effect with Persian Green */
   text-decoration: underline;
-}
-
-/* Dekorasi tambahan */
-.login-deco {
-  position: absolute;
-  bottom: -60px;
-  right: -60px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(2, 132, 199, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
-  border-radius: 50%;
-  z-index: 1;
 }
 
 /* Responsive */

@@ -1,0 +1,287 @@
+// backend/src/controllers/mousController.js
+import { pool } from "../db.js";
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ========================================
+// DASHBOARD DATA
+// ========================================
+export const getDashboardData = async (req, res) => {
+  try {
+    // 1. Hitung total MoU (category = 'mou' atau 'pemda')
+    const [mouCount] = await pool.query(
+      "SELECT COUNT(*) AS total FROM mous WHERE category IN ('mou', 'pemda')"
+    );
+    
+    // 2. Hitung total PKS (category = 'pks')
+    const [pksCount] = await pool.query(
+      "SELECT COUNT(*) AS total FROM mous WHERE category = 'pks'"
+    );
+    
+    // 3. Hitung MoU aktif/kadaluarsa
+    const [activeMou] = await pool.query(`
+      SELECT COUNT(*) AS active 
+      FROM mous 
+      WHERE category IN ('mou', 'pemda') 
+        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
+        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) > CURDATE()
+    `);
+    
+    const [expiredMou] = await pool.query(`
+      SELECT COUNT(*) AS expired 
+      FROM mous 
+      WHERE category IN ('mou', 'pemda') 
+        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
+        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) <= CURDATE()
+    `);
+    
+    // 4. Hitung PKS aktif/kadaluarsa
+    const [activePks] = await pool.query(`
+      SELECT COUNT(*) AS active 
+      FROM mous 
+      WHERE category = 'pks' 
+        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
+        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) > CURDATE()
+    `);
+    
+    const [expiredPks] = await pool.query(`
+      SELECT COUNT(*) AS expired 
+      FROM mous 
+      WHERE category = 'pks' 
+        AND JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
+        AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) <= CURDATE()
+    `);
+
+    // 5. Total aktif & kadaluarsa (semua kategori)
+    const activeCount = activeMou[0].active + activePks[0].active;
+    const expiredCount = expiredMou[0].expired + expiredPks[0].expired;
+
+    // 6. Ambil daftar dokumen terbaru (semua kategori)
+    const [documents] = await pool.query(`
+      SELECT 
+        id,
+        category AS type,
+        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.document_number')) AS document_number,
+        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.partner_name')) AS partner_name,
+        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.start_date')) AS start_date,
+        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')) AS end_date
+      FROM mous
+      WHERE JSON_EXTRACT(payload, '$.end_date') IS NOT NULL
+      ORDER BY 
+        STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')), '%Y-%m-%d') DESC
+      LIMIT 10
+    `);
+
+    // 7. Format status dokumen
+    const formattedDocs = documents.map(doc => ({
+      id: doc.id,
+      type: doc.type === 'pemda' ? 'MoU' : doc.type.toUpperCase(),
+      documentNumber: doc.document_number || 'N/A',
+      partnerName: doc.partner_name || 'N/A',
+      startDate: doc.start_date || 'N/A',
+      endDate: doc.end_date || 'N/A',
+      status: doc.end_date && new Date(doc.end_date) > new Date() ? 'active' : 'expired'
+    }));
+
+    // 8. Kembalikan data
+    res.json({
+      totalMou: mouCount[0].total,
+      totalPks: pksCount[0].total,
+      activeCount,
+      expiredCount,
+      mou: {
+        active: activeMou[0].active,
+        expired: expiredMou[0].expired
+      },
+      pks: {
+        active: activePks[0].active,
+        expired: expiredPks[0].expired
+      },
+      documents: formattedDocs
+    });
+  } catch (error) {
+    console.error("Dashboard data error:", error);
+    res.status(500).json({ message: "Gagal mengambil data dashboard" });
+  }
+};
+
+// ========================================
+// DOCUMENT PREVIEW
+// ========================================
+export const getDocumentPreview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 1. Ambil dokumen dari tabel mous
+    const [rows] = await pool.query(
+      "SELECT payload FROM mous WHERE id = ?",
+      [id]
+    );
+
+    if (!rows[0]) {
+      return res.status(404).json({ message: "Dokumen tidak ditemukan" });
+    }
+
+    // 2. Ekstrak file_path dari payload
+    const payload = JSON.parse(rows[0].payload);
+    const filePath = payload.file_path;
+
+    if (!filePath) {
+      return res.status(404).json({ message: "File path tidak ditemukan di dokumen" });
+    }
+
+    // 3. Pastikan path lengkap ke direktori public
+    const fullPath = path.join(__dirname, '../public', filePath);
+
+    // 4. Cek apakah file ada
+    if (!fs.existsSync(fullPath)) {
+      console.error("File tidak ditemukan di:", fullPath);
+      return res.status(404).json({ 
+        message: "File tidak ditemukan di server",
+        path: fullPath 
+      });
+    }
+
+    // 5. Kirim file sebagai response
+    const mimeType = filePath.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream';
+    
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${payload.document_name || 'document.pdf'}"`);
+    fs.createReadStream(fullPath).pipe(res);
+  } catch (error) {
+    console.error("Preview error:", error);
+    res.status(500).json({ 
+      message: "Gagal memuat preview dokumen",
+      error: error.message 
+    });
+  }
+};
+
+// ========================================
+// CRUD OPERATIONS
+// ========================================
+export const getAllMous = async (req, res) => {
+  try {
+    const { category } = req.query;
+    
+    // ✅ PERBAIKAN: Query yang sudah diperbaiki
+    let query = `
+      SELECT 
+        id,
+        category AS type,
+        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.documentType')) AS document_type,  
+        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.document_number')) AS document_number,
+        JSON_UNQUOTE(JSON_EXTRACT(payload, '$.partner_name')) AS partner_name,
+        COALESCE(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.start_date')), 'N/A') AS start_date,
+        COALESCE(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.end_date')), 'N/A') AS end_date
+      FROM mous
+    `;
+    
+    // ✅ PERBAIKAN: Jika category = 'pemda', ambil juga kategori 'mou'
+    if (category === 'pemda') {
+      query += ` WHERE category IN ('mou', 'pemda')`;
+    } else if (category) {
+      query += ` WHERE category = '${category}'`;
+    }
+    
+    query += ` ORDER BY id DESC`;
+    
+    const [documents] = await pool.query(query);
+    
+    // Format data
+    const formattedDocs = documents.map(doc => ({
+      id: doc.id,
+      type: doc.document_type || (doc.type === 'pemda' ? 'MoU' : doc.type.toUpperCase()),
+      documentNumber: doc.document_number || 'N/A',
+      partnerName: doc.partner_name || 'N/A',
+      startDate: doc.start_date || 'N/A',
+      endDate: doc.end_date || 'N/A'
+    }));
+    
+    res.json(formattedDocs);
+  } catch (error) {
+    console.error("Get all mous error:", error);
+    res.status(500).json({ message: "Gagal mengambil data MoU" });
+  }
+};
+
+export const getMouById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query("SELECT * FROM mous WHERE id = ?", [id]);
+    
+    if (!rows[0]) {
+      return res.status(404).json({ message: "MoU tidak ditemukan" });
+    }
+    
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Get mou by id error:", error);
+    res.status(500).json({ message: "Gagal mengambil data MoU" });
+  }
+};
+
+export const createMou = async (req, res) => {
+  try {
+    const { category, payload } = req.body;
+    
+    if (!category || !payload) {
+      return res.status(400).json({ message: "Category dan payload wajib diisi" });
+    }
+    
+    const [result] = await pool.query(
+      "INSERT INTO mous (category, payload) VALUES (?, ?)",
+      [category, JSON.stringify(payload)]
+    );
+    
+    res.status(201).json({
+      message: "MoU berhasil ditambahkan",
+      id: result.insertId
+    });
+  } catch (error) {
+    console.error("Create mou error:", error);
+    res.status(500).json({ message: "Gagal menambahkan MoU" });
+  }
+};
+
+export const updateMou = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { category, payload } = req.body;
+    
+    const [result] = await pool.query(
+      "UPDATE mous SET category = ?, payload = ? WHERE id = ?",
+      [category, JSON.stringify(payload), id]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "MoU tidak ditemukan" });
+    }
+    
+    res.json({ message: "MoU berhasil diupdate" });
+  } catch (error) {
+    console.error("Update mou error:", error);
+    res.status(500).json({ message: "Gagal mengupdate MoU" });
+  }
+};
+
+export const deleteMou = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [result] = await pool.query("DELETE FROM mous WHERE id = ?", [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "MoU tidak ditemukan" });
+    }
+    
+    res.json({ message: "MoU berhasil dihapus" });
+  } catch (error) {
+    console.error("Delete mou error:", error);
+    res.status(500).json({ message: "Gagal menghapus MoU" });
+  }
+};

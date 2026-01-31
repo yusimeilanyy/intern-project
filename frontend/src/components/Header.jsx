@@ -5,9 +5,9 @@ export default function Header() {
   return (
     <header className="bg-white border-b shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="h-20 flex items-center justify-between gap-4">
-          {/* KIRI */}
-          <div className="flex items-center gap-4 min-w-0">
+        <div className="h-20 flex items-center justify-between gap-6">
+          {/* Left Section (Logo + Title) */}
+          <div className="flex items-center gap-6 min-w-0">
             <img
               src={LogoKomdigi}
               alt="Logo Komdigi"
@@ -19,15 +19,15 @@ export default function Header() {
                 Sistem Pelacakan MoU & PKS
               </h1>
 
-              <p className="text-2xl md:text-sm text-gray-500 leading-snug whitespace-nowrap overflow-hidden text-ellipsis">
+              <p className="text-s text-gray-500 leading-snug whitespace-nowrap overflow-hidden text-ellipsis">
                 Balai Pengembangan Sumber Daya Manusia dan Penelitian Komunikasi
                 dan Informatika Manado
               </p>
             </div>
           </div>
 
-          {/* KANAN */}
-          <div className="shrink-0 flex items-center gap-2">
+          {/* Right Section (Logout Button) */}
+          <div className="shrink-0 flex items-center gap-4">
             <LogoutButton />
           </div>
         </div>

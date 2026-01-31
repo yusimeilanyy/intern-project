@@ -1,50 +1,84 @@
+/* Chart Container Styling */
 .chart-container {
-  margin-top: 30px;
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: space-between;
 }
 
 .chart-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  display: flex;
   gap: 24px;
-  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .chart-box {
-  background: white;
+  flex: 1 1 30%;
+  background: linear-gradient(135deg, rgba(0,181,170,0.15), rgba(0,51,108,0.10));
   border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0,51,108,0.12);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.chart-box.full-width {
-  grid-column: 1 / -1;
+.chart-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 36px rgba(0,51,108,0.18);
 }
 
 .chart-title {
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 20px 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.chart-title i {
-  color: #3b82f6;
+  color: var(--kominfo-navy);
+  margin-bottom: 12px;
 }
 
 .chart-wrapper {
-  height: 300px;
-  position: relative;
+  height: 300px; /* Set fixed height for better alignment */
+}
+
+.chart-box.full-width {
+  flex: 1 1 100%;
+}
+
+.chart-box i {
+  margin-right: 8px;
+  font-size: 1.2rem;
+  color: var(--kominfo-teal);
+}
+
+/* Tooltip Styling */
+.chart-container .tooltip {
+  background-color: var(--kominfo-navy);
+  color: var(--kominfo-white);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Custom Hover for Bars (Bar Chart) */
+.chart-container .chart-box .bar:hover {
+  background-color: var(--kominfo-orange) !important;
+}
+
+/* Pie Chart Hover */
+.chart-container .chart-box .pie-slice:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+/* Responsive Design for Smaller Screens */
+@media (max-width: 1024px) {
+  .chart-box {
+    flex: 1 1 45%;
+  }
 }
 
 @media (max-width: 768px) {
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .chart-wrapper {
-    height: 250px;
+  .chart-box {
+    flex: 1 1 100%;
   }
 }
