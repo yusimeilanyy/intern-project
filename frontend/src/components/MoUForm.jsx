@@ -57,16 +57,17 @@ export default function MoUForm({ initialData = null, onSubmit, onCancel, type }
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData(prev => ({
-        ...prev,
-        finalDoc: null,
-        finalDocName: file.name
-      }));
-    }
-  };
+const handleFileChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    // Menyimpan file dan nama file dalam state
+    setFormData(prev => ({
+      ...prev,
+      finalDoc: file, // Menyimpan file lengkap
+      finalDocName: file.name, // Menyimpan nama file
+    }));
+  }
+};
 
   const handleProvinceChange = (e) => {
     const provinceId = e.target.value;
@@ -85,23 +86,30 @@ export default function MoUForm({ initialData = null, onSubmit, onCancel, type }
     setFormData(prev => ({ ...prev, regencyId }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+const handleSubmit = (e) => {
+  e.preventDefault();
 
-    // ❌ Hapus finalDoc, ✅ pertahankan finalDocName
-    const { finalDoc, ...rest } = formData;
+  // Hanya kirim field yang ada di form — jangan tambahkan provinceName/regencyName/type
+  const { finalDoc, ...rest } = formData;
 
-    // ✅ Hanya kirim field yang ada di form — jangan tambahkan provinceName/regencyName/type
-    const dataToSubmit = {
-      ...rest,
-      // Jika backend butuh category, tambahkan:
-      // category: type === 'pemda' ? 'pemda' : 'non_pemda'
-    };
-
-    console.log('🚀 Data dikirim ke backend:', dataToSubmit); // 👈 Debug
-
-    onSubmit(dataToSubmit);
+  const dataToSubmit = {
+    ...rest,
+    category: type === 'pemda' ? 'pemda' : 'non_pemda', // Tambahkan category jika diperlukan
   };
+
+  const fd = new FormData();
+  fd.append("category", dataToSubmit.category);
+  fd.append("payload", JSON.stringify(dataToSubmit));
+
+  // Menambahkan file ke FormData jika ada
+  if (finalDoc) {
+    fd.append("file", finalDoc);
+  }
+
+  console.log("Data yang dikirimkan ke backend:", dataToSubmit);
+
+  onSubmit(fd);
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

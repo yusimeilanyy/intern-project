@@ -5,8 +5,7 @@ import EditIcon from "../assets/editicon.svg";
 import DeleteIcon from "../assets/deleteicon.svg";
 import FinalDocIcon from "../assets/finaldocicon.svg";
 
-
-// ===== API helper (langsung di file ini) =====
+// ===== API helper =====
 const API_BASE = "/api";
 
 function getToken() {
@@ -41,7 +40,6 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
-// dataURL(base64) -> Blob (untuk data lama kalau masih ada)
 function dataURLtoBlob(dataUrl) {
   const [header, base64] = dataUrl.split(",");
   const mime = header.match(/data:(.*?);base64/)?.[1] || "application/octet-stream";
@@ -58,26 +56,34 @@ export default function NonPemdaContent() {
   const [editingMou, setEditingMou] = useState(null);
   const [filter, setFilter] = useState('all');
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
+  const [loading, setLoading] = useState(true);
 
-  // Load data dari DATABASE (non_pemda)
+  // ✅ Function untuk fetch data dari database
+const fetchMouData = async () => {
+  try {
+    setLoading(true);
+    const rows = await apiFetch(`/mous?category=non_pemda&t=${Date.now()}`);
+    setMous(Array.isArray(rows) ? rows : []);
+  } catch (e) {
+    console.error("Error loading data:", e);
+    alert(`Gagal load data: ${e.message}`);
+    setMous([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  // ✅ Load data saat pertama kali
   useEffect(() => {
-    (async () => {
-      try {
-        const rows = await apiFetch(`/mous?category=non_pemda`);
-        setMous(rows || []);
-      } catch (e) {
-        console.error(e);
-        alert(`Gagal load data dari database: ${e.message}`);
-        setMous([]);
-      }
-    })();
+    fetchMouData();
   }, []);
 
-  // SAVE: kirim FormData + file
+  // ✅ SAVE dengan refresh dari database
   const handleSave = async (data) => {
     try {
       const {
-        finalDocumentFile,
+        file,
         finalDocumentName,
         finalDocumentUrl,
         ...payloadObj
@@ -92,51 +98,64 @@ export default function NonPemdaContent() {
         finalDocumentUrl: finalDocumentUrl || "",
       };
 
+      console.log("📤 Sending payload:", payloadToSend);
       fd.append("payload", JSON.stringify(payloadToSend));
 
-      if (finalDocumentFile) {
-        fd.append("finalDocument", finalDocumentFile);
+      // ✅ PERBAIKAN: Field name 'file' bukan 'finalDocument'
+      if (file) {
+        fd.append("file", file);
       }
 
       if (editingMou) {
-        const updated = await apiFetch(`/mous/${editingMou.id}`, {
+        await apiFetch(`/mous/${editingMou.id}`, {
           method: "PUT",
           body: fd,
         });
-        setMous(mous.map(m => (m.id === editingMou.id ? updated : m)));
-        setEditingMou(null);
+        console.log("✅ Update berhasil");
+        alert("✅ Dokumen berhasil diupdate!");
       } else {
-        const created = await apiFetch(`/mous`, {
+        await apiFetch(`/mous`, {
           method: "POST",
           body: fd,
         });
-        setMous([created, ...mous]);
+        console.log("✅ Create berhasil");
+        alert("✅ Dokumen berhasil disimpan!");
       }
 
+      // ✅ PENTING: Refresh data dari database
+      await fetchMouData();
+      
       setShowForm(false);
+      setEditingMou(null);
+      
     } catch (e) {
-      console.error(e);
-      alert(`Gagal simpan ke database: ${e.message}`);
+      console.error("❌ Error saving:", e);
+      alert(`Gagal simpan: ${e.message}`);
     }
   };
 
+  // ✅ DELETE dengan refresh dari database
   const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus MoU ini?')) return;
+    if (!window.confirm('Yakin ingin menghapus dokumen ini?')) return;
 
     try {
       await apiFetch(`/mous/${id}`, { method: "DELETE" });
-      setMous(mous.filter(mou => mou.id !== id));
+      console.log("✅ Delete berhasil");
+      alert("✅ Dokumen berhasil dihapus!");
+      
+      // ✅ PENTING: Refresh data dari database
+      await fetchMouData();
+      
     } catch (e) {
-      console.error(e);
-      alert(`Gagal hapus dari database: ${e.message}`);
+      console.error("❌ Error deleting:", e);
+      alert(`Gagal hapus: ${e.message}`);
     }
   };
 
-const filteredMoUs = mous.filter(mou => {
-  if (filter === 'all') return true;
-  return mou.status === filter;
-});
-
+  const filteredMoUs = Array.isArray(mous) ? mous.filter(mou => {
+    if (filter === 'all') return true;
+    return mou.status === filter;
+  }) : [];
 
   const statusOptions = [
     "Baru",
@@ -172,7 +191,6 @@ const filteredMoUs = mous.filter(mou => {
     }
   };
 
-  // Preview support URL /uploads + base64 lama
   const handlePreview = (fileContent, fileName) => {
     if (!fileContent) {
       alert("File tidak tersedia.");
@@ -181,7 +199,6 @@ const filteredMoUs = mous.filter(mou => {
 
     const fileType = (fileName || "").split('.').pop().toLowerCase();
 
-    // kalau URL dari backend
     if (typeof fileContent === "string" && (fileContent.startsWith("/uploads/") || fileContent.startsWith("http"))) {
       if (fileType === "pdf") {
         setPreviewModal({
@@ -201,7 +218,6 @@ const filteredMoUs = mous.filter(mou => {
       return;
     }
 
-    // fallback data lama base64
     if (fileType === 'pdf') {
       let blob;
       if (typeof fileContent === "string" && fileContent.startsWith("data:")) {
@@ -234,7 +250,6 @@ const filteredMoUs = mous.filter(mou => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Instansi Non-Pemerintah Daerah</h2>
@@ -253,12 +268,11 @@ const filteredMoUs = mous.filter(mou => {
         </button>
       </div>
 
-      {/* Content Box */}
       <div className="bg-white rounded-lg border p-6">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <img src={FileBlack} className="h-5 w-5" alt="File Icon" />
-            <span className="font-medium">Riwayat MoU ({filteredMoUs.length})</span>
+            <span className="font-medium">Riwayat Dokumen ({filteredMoUs.length})</span>
           </div>
 
           <select
@@ -273,37 +287,45 @@ const filteredMoUs = mous.filter(mou => {
           </select>
         </div>
 
-        {/* Tabel atau Kosong */}
-        {filteredMoUs.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="spinner mx-auto"></div>
+            <p className="text-gray-500 mt-4">Memuat data...</p>
+          </div>
+        ) : filteredMoUs.length === 0 ? (
           <div className="text-center py-12 flex flex-col items-center justify-center">
             <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
-            <p className="text-gray-500">Belum ada catatan MoU. Klik “Tambah MoU Baru” untuk memulai.</p>
+            <p className="text-gray-500">Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC Mitra</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Mulai</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Berakhir</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen Final</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
-                </tr>
-              </thead>
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perjanjian</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat <br /> Kerja Sama</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis <br /> Dokumen</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC <br /> PEMDA</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Mulai</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Berakhir</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen <br /> Final</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
+                  </tr>
+                </thead>
               <tbody className="bg-white divide-y divide-gray-200 whitespace-normal">
                 {filteredMoUs.map(mou => (
                   <tr key={mou.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.institutionalLevel || '-'}
+                    <td className="px-4 py-2 text-center break-words max-w-[100px]">
+                      {mou.documentType || '-'}
                     </td>
                     <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.type || '-'}
+                      {mou.institutionalLevel || '-'}  
+                    </td>
+                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
+                      {mou.type || '-'}  
                     </td>
                     <td className="px-4 py-2 text-center break-words max-w-[120px]">
                       {mou.bpsdmpPIC || '-'}
@@ -332,7 +354,6 @@ const filteredMoUs = mous.filter(mou => {
                       {mou.notes || '-'}
                     </td>
 
-                    {/* Dokumen Final via URL */}
                     <td className="px-4 py-2 text-center whitespace-nowrap">
                       {mou.finalDocumentUrl ? (
                         <button
@@ -373,7 +394,6 @@ const filteredMoUs = mous.filter(mou => {
         )}
       </div>
 
-      {/* Modal Form */}
       {showForm && (
         <NonPemdaFormModal
           initialData={editingMou}
@@ -385,7 +405,6 @@ const filteredMoUs = mous.filter(mou => {
         />
       )}
 
-      {/* Modal Preview */}
       {previewModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -416,26 +435,25 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
     "Nota Kesepakatan"
   ];
 
-  const [formData, setFormData] = useState({
-    institutionalLevel: '',
-    type: '',
-    customType: '',
-    bpsdmpPIC: '',
-    officeDocNumber: '',
-    partnerDocNumber: '',
-    partnerPIC: '',
-    partnerPICPhone: '',
-    owner: '',
-    notes: '',
-    cooperationStartDate: '',
-    cooperationEndDate: '',
-    status: 'Baru',
-
-    // simpan file object + url
-    finalDocumentFile: null,
-    finalDocumentName: '',
-    finalDocumentUrl: '',
-  });
+const [formData, setFormData] = useState({
+  documentType: '', 
+  institutionalLevel: '',
+  type: '',
+  customType: '',
+  bpsdmpPIC: '',
+  officeDocNumber: '',
+  partnerDocNumber: '',
+  partnerPIC: '',
+  partnerPICPhone: '',
+  owner: '',
+  notes: '',
+  cooperationStartDate: '',
+  cooperationEndDate: '',
+  status: 'Baru',
+  file: null,
+  finalDocumentName: '',
+  finalDocumentUrl: '',
+});
 
   useEffect(() => {
     if (initialData) {
@@ -443,6 +461,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
       const isCustom = initialType && !knownTypes.includes(initialType);
 
       setFormData({
+        documentType: initialData.documentType || '', 
         institutionalLevel: initialData.institutionalLevel || '',
         type: isCustom ? 'Lainnya' : initialType,
         customType: isCustom ? initialType : '',
@@ -456,8 +475,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
         cooperationStartDate: initialData.cooperationStartDate || '',
         cooperationEndDate: initialData.cooperationEndDate || '',
         status: initialData.status || 'Baru',
-
-        finalDocumentFile: null,
+        file: null,
         finalDocumentName: initialData.finalDocumentName || '',
         finalDocumentUrl: initialData.finalDocumentUrl || '',
       });
@@ -478,9 +496,10 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // ✅ PERBAIKAN: 'file' bukan 'final'
     setFormData(prev => ({
       ...prev,
-      finalDocumentFile: file,
+      file: file,
       finalDocumentName: file.name,
       finalDocumentUrl: '',
     }));
@@ -498,7 +517,8 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
 
     onSubmit({
       ...rest,
-      type: finalType
+      type: finalType,
+      documentType: formData.documentType
     });
   };
 
@@ -507,13 +527,29 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
       <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl overflow-y-auto max-h-[90vh]">
         <div className="p-6">
           <h2 className="text-xl font-bold mb-4">
-            {initialData ? 'Edit MoU' : 'Tambah MoU Non-Pemerintah Daerah'}
+            {initialData ? 'Edit Dokumen' : 'Tambah Dokumen Non-Pemerintah Daerah'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Jenis Dokumen */}
+<div>
+  <label className="block text-sm font-medium text-gray-700">Jenis Perjanjian</label>
+  <select
+    name="documentType"
+    value={formData.documentType}
+    onChange={handleChange}
+    required
+    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+  >
+    <option value="">Pilih jenis perjanjian</option>
+    <option value="MoU">MoU (Memorandum of Understanding)</option>
+    <option value="PKS">PKS (Perjanjian Kerja Sama)</option>
+  </select>
+</div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tingkat MoU</label>
+                <label className="block text-sm font-medium text-gray-700">Tingkat Kerja Sama</label>
                 <input
                   type="text"
                   name="institutionalLevel"
@@ -525,14 +561,14 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Jenis MoU</label>
+                <label className="block text-sm font-medium text-gray-700">Jenis Dokumen</label>
                 <select
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="">Pilih jenis MoU</option>
+                  <option value="">Pilih jenis dokumen</option>
                   {knownTypes.map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}
@@ -682,7 +718,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                            file:bg-gray-100 file:text-gray-700
                            hover:file:bg-gray-200"
               />
-              {(formData.finalDocumentFile || formData.finalDocumentUrl) && (
+              {(formData.file || formData.finalDocumentUrl) && (
                 <p className="text-xs text-gray-500 mt-1">
                   File: <span className="font-medium">{formData.finalDocumentName || "Dokumen tersimpan"}</span>
                 </p>
@@ -717,7 +753,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                 type="submit"
                 className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800"
               >
-                {initialData ? "Simpan Perubahan" : "Simpan MoU"}
+                {initialData ? "Simpan Perubahan" : "Simpan Dokumen"}
               </button>
             </div>
           </form>

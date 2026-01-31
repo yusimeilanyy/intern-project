@@ -22,49 +22,48 @@ export const getDashboardData = async (req, res) => {
         payload,
         created_at,
         updated_at
-      FROM mous 
+      FROM mous
       ORDER BY created_at DESC
     `);
 
     // 2. Parse semua dokumen dan ekstrak field penting
-    const documents = allDocs.map(doc => {
-      let payload = {};
-      try {
-        payload = typeof doc.payload === 'string' ? JSON.parse(doc.payload) : doc.payload;
-      } catch (e) {
-        console.error(`Error parsing payload for doc ${doc.id}:`, e);
-        payload = {};
-      }
+const documents = allDocs.map(doc => {
+  let payload = {};
+  try {
+    payload = typeof doc.payload === 'string' ? JSON.parse(doc.payload) : doc.payload;
+  } catch (e) {
+    console.error(`Error parsing payload for doc ${doc.id}:`, e);
+    payload = {};
+  }
+  // Pastikan documentType terisi dengan benar
+  const documentType = payload.documentType || (doc.category === 'pemda' || doc.category === 'mou' ? 'MoU' : 'PKS');
 
-      // ✅ PERBAIKAN: Pastikan documentType diset dengan benar
-      const documentType = payload.documentType || (doc.category === 'pemda' || doc.category === 'mou' ? 'MoU' : 'PKS');
+  return {
+    id: doc.id,
+    category: doc.category,
+    documentType: documentType,
+    type: payload.type || '-',
+    institutionalLevel: payload.institutionalLevel || '-',
+    bpsdmpPIC: payload.bpsdmpPIC || '-',
+    partnerPIC: payload.partnerPIC || '-',
+    partnerPICPhone: payload.partnerPICPhone || '-',
+    officeDocNumber: payload.officeDocNumber || '-',
+    partnerDocNumber: payload.partnerDocNumber || '-',
+    owner: payload.owner || '-',
+    notes: payload.notes || '-',
+    cooperationStartDate: payload.cooperationStartDate || '-',
+    cooperationEndDate: payload.cooperationEndDate || '-',
+    status: payload.status || 'Baru',
+    finalDocumentName: payload.finalDocumentName || '',
+    finalDocumentUrl: payload.finalDocumentUrl || '',
+    provinceId: payload.provinceId || '',
+    regencyId: payload.regencyId || '',
+    level: payload.level || '',
+    created_at: doc.created_at,
+    updated_at: doc.updated_at
+  };
+});
 
-
-      return {
-        id: doc.id,
-        category: doc.category, // 'mou', 'pemda', 'pks'
-        documentType: documentType, // ✅ Pastikan documentType terisi dengan benar
-        type: payload.type || '-',
-        institutionalLevel: payload.institutionalLevel || '-',
-        bpsdmpPIC: payload.bpsdmpPIC || '-',
-        partnerPIC: payload.partnerPIC || '-',
-        partnerPICPhone: payload.partnerPICPhone || '-',
-        officeDocNumber: payload.officeDocNumber || '-',
-        partnerDocNumber: payload.partnerDocNumber || '-',
-        owner: payload.owner || '-',
-        notes: payload.notes || '-',
-        cooperationStartDate: payload.cooperationStartDate || '-',
-        cooperationEndDate: payload.cooperationEndDate || '-',
-        status: payload.status || 'Baru',
-        finalDocumentName: payload.finalDocumentName || '',
-        finalDocumentUrl: payload.finalDocumentUrl || '',
-        provinceId: payload.provinceId || '',
-        regencyId: payload.regencyId || '',
-        level: payload.level || '',
-        created_at: doc.created_at,
-        updated_at: doc.updated_at
-      };
-    });
 
     // 3. Hitung total berdasarkan documentType (bukan category)
     const totalMou = documents.filter(d => d.documentType === 'MoU').length;
@@ -182,44 +181,48 @@ export const getDocumentPreview = async (req, res) => {
 export const getAllMous = async (req, res) => {
   try {
     const { category } = req.query;
-    
     let query = `SELECT id, category, payload, created_at FROM mous`;
-    
-if (category === 'pemda') {
-  query += ` WHERE category IN ('mou', 'pemda')`;
-} else if (category === 'non_pemda') {
-  query += ` WHERE category = 'non_pemda'`; // Menangani kategori non_pemda
-} else if (category) {
-  query += ` WHERE category = '${category}'`;
-}
-
-    
+    if (category === 'pemda') {
+      query += ` WHERE category IN ('mou', 'pemda')`;
+    } else if (category === 'non_pemda') {
+      query += ` WHERE category = 'non_pemda'`;
+    }
     query += ` ORDER BY created_at DESC`;
-    
+
     const [documents] = await pool.query(query);
-    
+
     const formattedDocs = documents.map(doc => {
       let payload = {};
       try {
-        payload = typeof doc.payload === 'string' ? JSON.parse(doc.payload) : doc.payload;
+        payload = typeof doc.payload === 'string' 
+          ? JSON.parse(doc.payload) 
+          : doc.payload;
       } catch (e) {
         console.error(`Error parsing payload for doc ${doc.id}:`, e);
       }
 
-      // ✅ PERBAIKAN: Ekstrak documentType
-      const documentType = payload.documentType || (doc.category === 'pks' ? 'PKS' : 'MoU');
-
+      // ✅ Ekstrak semua field dari payload ke root objek
       return {
         id: doc.id,
         category: doc.category,
-        documentType: documentType, // ✅ TAMBAHAN
-        documentNumber: payload.officeDocNumber || 'N/A',
-        partnerName: payload.institutionalLevel || 'N/A',
-        startDate: payload.cooperationStartDate || 'N/A',
-        endDate: payload.cooperationEndDate || 'N/A'
+        institutionalLevel: payload.institutionalLevel || '-',
+        type: payload.type || doc.type || '-',
+        bpsdmpPIC: payload.bpsdmpPIC || '-',
+        partnerPIC: payload.partnerPIC || '-',
+        partnerPICPhone: payload.partnerPICPhone || '-',
+        officeDocNumber: payload.officeDocNumber || '-',
+        partnerDocNumber: payload.partnerDocNumber || '-',
+        owner: payload.owner || '-',
+        notes: payload.notes || '-',
+        cooperationStartDate: payload.cooperationStartDate || '-',
+        cooperationEndDate: payload.cooperationEndDate || '-',
+        status: payload.status || 'Baru',
+        finalDocumentName: payload.finalDocumentName || '',
+        finalDocumentUrl: payload.finalDocumentUrl || '',
+        created_at: doc.created_at
       };
     });
-    
+
     res.json(formattedDocs);
   } catch (error) {
     console.error("Get all mous error:", error);
@@ -288,10 +291,10 @@ export const createMou = async (req, res) => {
     }
 
     // Menyimpan ke database
-    const [result] = await pool.query(
-      "INSERT INTO mous (category, payload, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
-      [category, JSON.stringify(parsedPayload)]
-    );
+const [result] = await pool.query(
+  "INSERT INTO mous (category, payload, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
+  [category, JSON.stringify(parsedPayload)]
+);
 
     console.log("✅ MoU created with ID:", result.insertId);
 

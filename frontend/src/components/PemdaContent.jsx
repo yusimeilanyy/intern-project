@@ -358,16 +358,16 @@ export default function PemdaContent() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Dokumen</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sub Jenis</th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perjanjian</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat <br /> Kerja Sama</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis <br /> Dokumen</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC PEMDA</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Mulai</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Berakhir</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC <br /> PEMDA</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Mulai</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Berakhir</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen Final</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen <br /> Final</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
                   </tr>
                 </thead>
@@ -661,7 +661,7 @@ const handleRegencyChange = (e) => {
             {/* ✅ DROPDOWN JENIS DOKUMEN - WAJIB */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Jenis Dokumen <span className="text-red-500">*</span>
+                Jenis Perjanjian <span className="text-red-500">*</span>
               </label>
               <select
                 name="documentType"
@@ -670,7 +670,7 @@ const handleRegencyChange = (e) => {
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Pilih jenis dokumen</option>
+                <option value="">Pilih jenis perjanjian</option>
                 <option value="MoU">MoU (Memorandum of Understanding)</option>
                 <option value="PKS">PKS (Perjanjian Kerja Sama)</option>
               </select>
@@ -679,7 +679,7 @@ const handleRegencyChange = (e) => {
             {/* Tingkat MoU & Jenis MoU */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tingkat MoU</label>
+                <label className="block text-sm font-medium text-gray-700">Tingkat Kerja Sama</label>
                 <select
                   name="level"
                   value={formData.level}
@@ -693,14 +693,14 @@ const handleRegencyChange = (e) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Jenis MoU</label>
+                <label className="block text-sm font-medium text-gray-700">Jenis Dokumen</label>
                 <select
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="">Pilih jenis MoU</option>
+                  <option value="">Pilih jenis dokumen</option>
                   {knownTypes.map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}
