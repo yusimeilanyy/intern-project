@@ -14,12 +14,13 @@ import mousRoutes from "./routes/mous.js";
 import usersRoutes from './routes/users.js';
 import { requireAuth } from "./middleware/auth.js";
 import { getDashboardData } from "./controllers/mousController.js";  // ✅ Import langsung dari controller
-
+import { setupReminderJobs } from './jobs/reminderJob.js';
 dotenv.config();
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Setup reminder jobs
 
 // Security / logs
 app.use(helmet());
@@ -90,6 +91,7 @@ app.use((err, req, res, next) => {
 });
 
 const port = Number(process.env.PORT || 4001);
+setupReminderJobs();
 app.listen(port, () => {
   console.log(`✅ API running on http://localhost:${port}`);
   console.log(`✅ Health check: http://localhost:${port}/api/health`);
