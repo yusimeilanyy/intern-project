@@ -11,6 +11,7 @@ function App() {
   const [isLogin, setIsLogin] = useState(false);
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [userRole, setUserRole] = useState(null); // ✅ State untuk role
+  const [activeTab, setActiveTab] = useState("pemda"); // ✅ Tambahkan state activeTab untuk memanage tab aktif
 
   useEffect(() => {
     // Cek login saat halaman dimuat
@@ -94,11 +95,11 @@ function App() {
         {currentPage === 'dashboard' ? (
           <Dashboard />
         ) : currentPage === 'user-management' ? (
-          <UserManagement isAdmin={isAdmin} /> 
+          <UserManagement isAdmin={isAdmin} />
         ) : (
           <Homepage 
-            activeTab="pemda" 
-            onTabChange={() => {}} 
+            activeTab={activeTab} // ✅ Pass activeTab state to Homepage
+            onTabChange={setActiveTab} // ✅ Pass onTabChange handler to Homepage
           />
         )}
       </main>

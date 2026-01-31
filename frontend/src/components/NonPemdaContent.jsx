@@ -5,6 +5,7 @@ import EditIcon from "../assets/editicon.svg";
 import DeleteIcon from "../assets/deleteicon.svg";
 import FinalDocIcon from "../assets/finaldocicon.svg";
 
+
 // ===== API helper (langsung di file ini) =====
 const API_BASE = "/api";
 
@@ -131,10 +132,11 @@ export default function NonPemdaContent() {
     }
   };
 
-  const filteredMoUs = mous.filter(mou => {
-    if (filter === 'all') return true;
-    return mou.status === filter;
-  });
+const filteredMoUs = mous.filter(mou => {
+  if (filter === 'all') return true;
+  return mou.status === filter;
+});
+
 
   const statusOptions = [
     "Baru",
@@ -247,7 +249,7 @@ export default function NonPemdaContent() {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          Tambah MoU
+          Tambah Dokumen
         </button>
       </div>
 
@@ -273,7 +275,7 @@ export default function NonPemdaContent() {
 
         {/* Tabel atau Kosong */}
         {filteredMoUs.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 flex flex-col items-center justify-center">
             <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
             <p className="text-gray-500">Belum ada catatan MoU. Klik “Tambah MoU Baru” untuk memulai.</p>
           </div>

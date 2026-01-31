@@ -36,12 +36,14 @@ export const getDashboardData = async (req, res) => {
         payload = {};
       }
 
-      const documentType = payload.documentType || (doc.category === 'pks' ? 'PKS' : 'MoU');
+      // ✅ PERBAIKAN: Pastikan documentType diset dengan benar
+      const documentType = payload.documentType || (doc.category === 'pemda' || doc.category === 'mou' ? 'MoU' : 'PKS');
+
 
       return {
         id: doc.id,
         category: doc.category, // 'mou', 'pemda', 'pks'
-        documentType: documentType,
+        documentType: documentType, // ✅ Pastikan documentType terisi dengan benar
         type: payload.type || '-',
         institutionalLevel: payload.institutionalLevel || '-',
         bpsdmpPIC: payload.bpsdmpPIC || '-',
@@ -64,32 +66,32 @@ export const getDashboardData = async (req, res) => {
       };
     });
 
-    // 3. Hitung total berdasarkan CATEGORY
-    const totalMou = documents.filter(d => d.category === 'mou' || d.category === 'pemda').length;
-    const totalPks = documents.filter(d => d.category === 'pks').length;
+    // 3. Hitung total berdasarkan documentType (bukan category)
+    const totalMou = documents.filter(d => d.documentType === 'MoU').length;
+    const totalPks = documents.filter(d => d.documentType === 'PKS').length;
 
     // 4. Hitung aktif/kadaluarsa berdasarkan tanggal
     const now = new Date();
     const activeMou = documents.filter(d => 
-      (d.category === 'mou' || d.category === 'pemda') && 
+      d.documentType === 'MoU' && 
       d.cooperationEndDate !== '-' && 
       new Date(d.cooperationEndDate) > now
     ).length;
 
     const expiredMou = documents.filter(d => 
-      (d.category === 'mou' || d.category === 'pemda') && 
+      d.documentType === 'MoU' && 
       d.cooperationEndDate !== '-' && 
       new Date(d.cooperationEndDate) <= now
     ).length;
 
     const activePks = documents.filter(d => 
-      d.category === 'pks' && 
+      d.documentType === 'PKS' && 
       d.cooperationEndDate !== '-' && 
       new Date(d.cooperationEndDate) > now
     ).length;
 
     const expiredPks = documents.filter(d => 
-      d.category === 'pks' && 
+      d.documentType === 'PKS' && 
       d.cooperationEndDate !== '-' && 
       new Date(d.cooperationEndDate) <= now
     ).length;
@@ -183,11 +185,14 @@ export const getAllMous = async (req, res) => {
     
     let query = `SELECT id, category, payload, created_at FROM mous`;
     
-    if (category === 'pemda') {
-      query += ` WHERE category IN ('mou', 'pemda')`;
-    } else if (category) {
-      query += ` WHERE category = '${category}'`;
-    }
+if (category === 'pemda') {
+  query += ` WHERE category IN ('mou', 'pemda')`;
+} else if (category === 'non_pemda') {
+  query += ` WHERE category = 'non_pemda'`; // Menangani kategori non_pemda
+} else if (category) {
+  query += ` WHERE category = '${category}'`;
+}
+
     
     query += ` ORDER BY created_at DESC`;
     
@@ -254,13 +259,14 @@ export const createMou = async (req, res) => {
   try {
     const { category, payload } = req.body;
     
-    console.log("📝 Creating MoU:", { category, payload: JSON.parse(payload) });
-    
+    console.log("📝 Creating MoU:", { category, payload });
+
+    // Pastikan category dan payload ada
     if (!category || !payload) {
       return res.status(400).json({ message: "Category dan payload wajib diisi" });
     }
 
-    // ✅ PERBAIKAN: Parse payload dan validasi documentType
+    // Parsing payload jika perlu
     let parsedPayload = {};
     try {
       parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload;
@@ -270,25 +276,26 @@ export const createMou = async (req, res) => {
 
     // Pastikan documentType ada di payload
     if (!parsedPayload.documentType) {
-      parsedPayload.documentType = category === 'pks' ? 'PKS' : 'MoU';
+      parsedPayload.documentType = category === 'pks' ? 'PKS' : 'MoU'; // Default ke MoU jika tidak ada
     }
 
-    // Handle file upload jika ada
+    // Menghandle file upload jika ada
     if (req.file) {
       const fileUrl = `/uploads/${req.file.filename}`;
       parsedPayload.finalDocumentUrl = fileUrl;
       parsedPayload.finalDocumentName = req.file.originalname;
       console.log("📎 File uploaded:", fileUrl);
     }
-    
+
+    // Menyimpan ke database
     const [result] = await pool.query(
       "INSERT INTO mous (category, payload, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
       [category, JSON.stringify(parsedPayload)]
     );
-    
+
     console.log("✅ MoU created with ID:", result.insertId);
 
-    // Return data lengkap
+    // Kembalikan data
     res.status(201).json({
       message: "MoU berhasil ditambahkan",
       id: result.insertId,
@@ -308,7 +315,7 @@ export const updateMou = async (req, res) => {
     
     console.log("✏️ Updating MoU ID:", id, "Category:", category);
 
-    // ✅ PERBAIKAN: Parse payload dan validasi
+    // Parsing payload jika perlu
     let parsedPayload = {};
     try {
       parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload;
@@ -316,12 +323,12 @@ export const updateMou = async (req, res) => {
       return res.status(400).json({ message: "Payload tidak valid" });
     }
 
-    // Pastikan documentType ada
+    // Pastikan documentType ada di payload
     if (!parsedPayload.documentType) {
-      parsedPayload.documentType = category === 'pks' ? 'PKS' : 'MoU';
+      parsedPayload.documentType = category === 'pks' ? 'PKS' : 'MoU'; // Default ke MoU jika tidak ada
     }
 
-    // Handle file upload baru jika ada
+    // Menghandle file upload baru jika ada
     if (req.file) {
       const fileUrl = `/uploads/${req.file.filename}`;
       parsedPayload.finalDocumentUrl = fileUrl;
@@ -329,6 +336,7 @@ export const updateMou = async (req, res) => {
       console.log("📎 New file uploaded:", fileUrl);
     }
     
+    // Menyimpan update ke database
     const [result] = await pool.query(
       "UPDATE mous SET category = ?, payload = ?, updated_at = NOW() WHERE id = ?",
       [category, JSON.stringify(parsedPayload), id]
@@ -340,7 +348,7 @@ export const updateMou = async (req, res) => {
     
     console.log("✅ MoU updated successfully");
 
-    // Return data lengkap
+    // Kembalikan data setelah update
     res.json({ 
       message: "MoU berhasil diupdate",
       id: parseInt(id),

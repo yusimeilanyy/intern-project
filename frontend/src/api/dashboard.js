@@ -25,13 +25,16 @@ const Dashboard = () => {
         const data = await response.json();
         
         // 2. Simpan data ke state
+        const totalMou = data.documents.filter(doc => doc.documentType === 'MoU').length;
+        const totalPks = data.documents.filter(doc => doc.documentType === 'PKS').length;
+        const activeCount = data.documents.filter(doc => doc.status === 'Aktif').length;
+        const expiredCount = data.documents.filter(doc => doc.status === 'Kadaluarsa').length;
+
         setStats({
-          totalMou: data.totalMou,
-          totalPks: data.totalPks,
-          activeCount: data.activeCount,
-          expiredCount: data.expiredCount,
-          mou: data.mou,
-          pks: data.pks
+          totalMou,
+          totalPks,
+          activeCount,
+          expiredCount,
         });
         
         setDocuments(data.documents);

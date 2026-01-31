@@ -4,7 +4,7 @@ import PemdaIcon from "../assets/pemda.svg";
 import NonPemdaIcon from "../assets/nonpemda.svg";
 
 export default function Homepage({ activeTab, onTabChange }) {
-  const isPemda = activeTab === "pemda";
+  const isPemda = activeTab === "pemda"; // Check if activeTab is 'pemda'
 
   return (
     <div className="pt-6 space-y-6">
@@ -45,7 +45,7 @@ export default function Homepage({ activeTab, onTabChange }) {
             type="button"
             role="tab"
             aria-selected={!isPemda}
-            onClick={() => onTabChange("non-pemda")}
+            onClick={() => onTabChange("non-pemda")} // Ensure this is correct
             className={`group flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               !isPemda ? "text-blue-800" : "text-slate-600 hover:text-slate-900"
             }`}
@@ -60,7 +60,9 @@ export default function Homepage({ activeTab, onTabChange }) {
         </div>
       </div>
 
+      {/* Content Box */}
       <div className="animate-none">
+        {/* Render appropriate content based on activeTab */}
         {isPemda ? <PemdaContent /> : <NonPemdaContent />}
       </div>
     </div>
