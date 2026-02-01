@@ -3,7 +3,7 @@ import StatCard from './StatCard';
 import ChartContainer from './ChartContainer';
 import DocumentTable from './DocumentTable';
 import './Dashboard.css';
-import ExpiringStatsWidget from './ExpiringStatsWidget'; // ✅ SUDAH ADA
+import ExpiringStatsWidget from './ExpiringStatsWidget';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -11,15 +11,25 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // ✅ TAMBAHAN: Filter untuk jenis dokumen
-  const [documentTypeFilter, setDocumentTypeFilter] = useState('all'); // 'all', 'MoU', 'PKS'
+  // ✅ TAMBAHKAN STATE UNTUK FILTER STATUS
+  const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'Aktif', 'Kadaluarsa'
+
+  // ✅ TAMBAHKAN HANDLER UNTUK KLIK STAT CARDS
+  const handleStatClick = (filterType, value) => {
+    if (filterType === 'documentType') {
+      setDocumentTypeFilter(value);
+      setStatusFilter('all'); // Reset status filter
+    } else if (filterType === 'status') {
+      setStatusFilter(value);
+      setDocumentTypeFilter('all'); // Reset document type filter
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Ambil token dari localStorage
         const token = localStorage.getItem('token');
         
         if (!token) {
@@ -28,11 +38,8 @@ const Dashboard = () => {
         
         console.log("📊 Fetching dashboard data...");
         
-        // 1. Fetch data dari API backend dengan token
         const response = await fetch(`/api/dashboard?t=${Date.now()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
         
         if (!response.ok) {
@@ -50,7 +57,6 @@ const Dashboard = () => {
           totalDocuments: data.documents?.length
         });
         
-        // 2. Simpan data ke state
         setStats({
           totalMou: data.totalMou,
           totalPks: data.totalPks,
@@ -60,14 +66,12 @@ const Dashboard = () => {
           pks: data.pks
         });
         
-        // ✅ PERBAIKAN: Simpan dokumen dengan validasi
         setDocuments(Array.isArray(data.documents) ? data.documents : []);
         
       } catch (err) {
         console.error("❌ Error fetching dashboard data:", err);
         setError(err.message);
         
-        // Jika error 401, hapus token dan redirect ke login
         if (err.message.includes('401') || err.message.includes('sesi')) {
           localStorage.removeItem('token');
           window.location.href = '/login';
@@ -77,18 +81,33 @@ const Dashboard = () => {
       }
     };
 
-    // 3. Fetch data saat komponen dimount
     fetchData();
-    
-    // 4. Auto-refresh setiap 5 menit
     const interval = setInterval(fetchData, 300000);
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ TAMBAHAN: Filter dokumen berdasarkan documentType
+  // ✅ FILTER DOKUMEN BERDASARKAN KEDUA FILTER (DOCUMENT TYPE + STATUS)
   const filteredDocuments = documents.filter(doc => {
-    if (documentTypeFilter === 'all') return true;
-    return doc.documentType === documentTypeFilter;
+    // Filter by Document Type
+    if (documentTypeFilter !== 'all' && doc.documentType !== documentTypeFilter) {
+      return false;
+    }
+    
+    // Filter by Status (Aktif/Kadaluarsa berdasarkan tanggal)
+    if (statusFilter !== 'all') {
+      const today = new Date();
+      const endDate = doc.cooperationEndDate ? new Date(doc.cooperationEndDate) : null;
+      
+      if (!endDate || doc.cooperationEndDate === '-') return false;
+      
+      if (statusFilter === 'Aktif') {
+        return endDate > today;
+      } else if (statusFilter === 'Kadaluarsa') {
+        return endDate <= today;
+      }
+    }
+    
+    return true;
   });
 
   if (loading) {
@@ -116,103 +135,111 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <h1 className="dashboard-title">Ringkasan MoU & PKS</h1>
       
-      {/* ✅ WIDGET REMINDER - DITAMBAHKAN DI SINI */}
+      {/* ✅ WIDGET REMINDER */}
       <ExpiringStatsWidget />
       
-      {/* Statistik Utama */}
+      {/* ✅ STAT CARDS DENGAN ONCLICK - WRAP DALAM DIV KLIKABLE */}
       <div className="stats-grid">
-        <StatCard 
-          title="Total MoU" 
-          value={stats.totalMou} 
-          icon="fa-file-contract" 
-          color="primary" 
-        />
-        <StatCard 
-          title="Total PKS" 
-          value={stats.totalPks} 
-          icon="fa-file-contract" 
-          color="success" 
-        />
-        <StatCard 
-          title="Aktif" 
-          value={stats.activeCount} 
-          icon="fa-check-circle" 
-          color="success" 
-          subtitle={`+${stats.activeCount - stats.expiredCount} dari total`}
-        />
-        <StatCard 
-          title="Kadaluarsa" 
-          value={stats.expiredCount} 
-          icon="fa-exclamation-triangle" 
-          color="danger" 
-        />
+        <div 
+          onClick={() => handleStatClick('documentType', 'MoU')} 
+          style={{ cursor: 'pointer' }}
+          title="Klik untuk melihat semua MoU"
+        >
+          <StatCard 
+            title="Total MoU" 
+            value={stats.totalMou} 
+            icon="fa-file-contract" 
+            color="primary" 
+          />
+        </div>
+        <div 
+          onClick={() => handleStatClick('documentType', 'PKS')} 
+          style={{ cursor: 'pointer' }}
+          title="Klik untuk melihat semua PKS"
+        >
+          <StatCard 
+            title="Total PKS" 
+            value={stats.totalPks} 
+            icon="fa-file-contract" 
+            color="success" 
+          />
+        </div>
+        <div 
+          onClick={() => handleStatClick('status', 'Aktif')} 
+          style={{ cursor: 'pointer' }}
+          title="Klik untuk melihat dokumen aktif"
+        >
+          <StatCard 
+            title="Aktif" 
+            value={stats.activeCount} 
+            icon="fa-check-circle" 
+            color="success" 
+            subtitle={`+${stats.activeCount - stats.expiredCount} dari total`}
+          />
+        </div>
+        <div 
+          onClick={() => handleStatClick('status', 'Kadaluarsa')} 
+          style={{ cursor: 'pointer' }}
+          title="Klik untuk melihat dokumen kadaluarsa"
+        >
+          <StatCard 
+            title="Kadaluarsa" 
+            value={stats.expiredCount} 
+            icon="fa-exclamation-triangle" 
+            color="danger" 
+          />
+        </div>
       </div>
 
       {/* Grafik */}
       <ChartContainer stats={stats} />
 
-      {/* ✅ TAMBAHAN: Filter Jenis Dokumen */}
-      <div className="filter-section" style={{ 
-        marginBottom: '20px', 
-        padding: '15px', 
-        backgroundColor: '#fff', 
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontWeight: '600', color: '#374151' }}>Filter Jenis Dokumen:</span>
-          <button
-            onClick={() => setDocumentTypeFilter('all')}
-            className={`filter-btn ${documentTypeFilter === 'all' ? 'active' : ''}`}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: documentTypeFilter === 'all' ? 'none' : '1px solid #e5e7eb',
-              backgroundColor: documentTypeFilter === 'all' ? '#3b82f6' : '#fff',
-              color: documentTypeFilter === 'all' ? '#fff' : '#374151',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            Semua ({documents.length})
-          </button>
-          <button
-            onClick={() => setDocumentTypeFilter('MoU')}
-            className={`filter-btn ${documentTypeFilter === 'MoU' ? 'active' : ''}`}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: documentTypeFilter === 'MoU' ? 'none' : '1px solid #e5e7eb',
-              backgroundColor: documentTypeFilter === 'MoU' ? '#3b82f6' : '#fff',
-              color: documentTypeFilter === 'MoU' ? '#fff' : '#374151',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            MoU ({documents.filter(d => d.documentType === 'MoU').length})
-          </button>
-          <button
-            onClick={() => setDocumentTypeFilter('PKS')}
-            className={`filter-btn ${documentTypeFilter === 'PKS' ? 'active' : ''}`}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: documentTypeFilter === 'PKS' ? 'none' : '1px solid #e5e7eb',
-              backgroundColor: documentTypeFilter === 'PKS' ? '#10b981' : '#fff',
-              color: documentTypeFilter === 'PKS' ? '#fff' : '#374151',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            PKS ({documents.filter(d => d.documentType === 'PKS').length})
-          </button>
+      {/* ✅ TAMBAHKAN INFO FILTER AKTIF */}
+      {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
+        <div className="filter-section" style={{ 
+          marginBottom: '20px', 
+          padding: '15px', 
+          backgroundColor: '#e3f2fd', 
+          borderRadius: '8px',
+          borderLeft: '4px solid #2196f3',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span style={{ fontWeight: '600', color: '#1565c0', fontSize: '14px' }}>
+                🔍 Filter Aktif: 
+                {documentTypeFilter !== 'all' && <strong> {documentTypeFilter}</strong>}
+                {statusFilter !== 'all' && <strong> {statusFilter}</strong>}
+              </span>
+              <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#546e7a' }}>
+                Menampilkan {filteredDocuments.length} dari {documents.length} dokumen
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setDocumentTypeFilter('all');
+                setStatusFilter('all');
+              }}
+              style={{
+                padding: '6px 16px',
+                borderRadius: '6px',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                border: 'none',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#1565c0'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#1976d2'}
+            >
+              Reset Filter
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Tabel Dokumen dengan filter */}
+      {/* Tabel Dokumen dengan filter LENGKAP */}
       <DocumentTable 
         documents={filteredDocuments} 
         loading={false} 

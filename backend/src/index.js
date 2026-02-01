@@ -57,7 +57,7 @@ app.use(
 );
 
 // Serve static files (uploads)
-app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+app.use('/uploads', express.static('public/uploads'));
 
 // Health check
 app.get("/api/health", (req, res) => {

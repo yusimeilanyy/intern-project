@@ -54,32 +54,30 @@ export default function NonPemdaContent() {
   const [mous, setMous] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingMou, setEditingMou] = useState(null);
-  const [filter, setFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
   const [loading, setLoading] = useState(true);
 
-  // ✅ Function untuk fetch data dari database
-const fetchMouData = async () => {
-  try {
-    setLoading(true);
-    const rows = await apiFetch(`/mous?category=non_pemda&t=${Date.now()}`);
-    setMous(Array.isArray(rows) ? rows : []);
-  } catch (e) {
-    console.error("Error loading data:", e);
-    alert(`Gagal load data: ${e.message}`);
-    setMous([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchMouData = async () => {
+    try {
+      setLoading(true);
+      const rows = await apiFetch(`/mous?category=non_pemda&t=${Date.now()}`);
+      console.log("✅ Data loaded:", rows); // ✅ TAMBAHAN: Debug log
+      setMous(Array.isArray(rows) ? rows : []);
+    } catch (e) {
+      console.error("Error loading data:", e);
+      alert(`Gagal load data: ${e.message}`);
+      setMous([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-
-  // ✅ Load data saat pertama kali
   useEffect(() => {
     fetchMouData();
   }, []);
 
-  // ✅ SAVE dengan refresh dari database
   const handleSave = async (data) => {
     try {
       const {
@@ -101,7 +99,6 @@ const fetchMouData = async () => {
       console.log("📤 Sending payload:", payloadToSend);
       fd.append("payload", JSON.stringify(payloadToSend));
 
-      // ✅ PERBAIKAN: Field name 'file' bukan 'finalDocument'
       if (file) {
         fd.append("file", file);
       }
@@ -122,7 +119,6 @@ const fetchMouData = async () => {
         alert("✅ Dokumen berhasil disimpan!");
       }
 
-      // ✅ PENTING: Refresh data dari database
       await fetchMouData();
       
       setShowForm(false);
@@ -134,7 +130,6 @@ const fetchMouData = async () => {
     }
   };
 
-  // ✅ DELETE dengan refresh dari database
   const handleDelete = async (id) => {
     if (!window.confirm('Yakin ingin menghapus dokumen ini?')) return;
 
@@ -143,7 +138,6 @@ const fetchMouData = async () => {
       console.log("✅ Delete berhasil");
       alert("✅ Dokumen berhasil dihapus!");
       
-      // ✅ PENTING: Refresh data dari database
       await fetchMouData();
       
     } catch (e) {
@@ -153,8 +147,22 @@ const fetchMouData = async () => {
   };
 
   const filteredMoUs = Array.isArray(mous) ? mous.filter(mou => {
-    if (filter === 'all') return true;
-    return mou.status === filter;
+    if (statusFilter !== 'all' && mou.status !== statusFilter) return false;
+    
+    if (documentTypeFilter !== 'all') {
+      const docType = (mou.documentType || '').toLowerCase().replace(/\s+/g, '');
+      const filterType = documentTypeFilter.toLowerCase().replace(/\s+/g, '');
+      
+      if (filterType === 'mou' || filterType === 'memorandum') {
+        return docType.includes('mou') || docType.includes('memorandum');
+      }
+      if (filterType === 'pks' || filterType === 'perjanjiankerjasama' || filterType === 'perjanjian kerjasama') {
+        return docType.includes('pks') || docType.includes('perjanjian') && docType.includes('kerja');
+      }
+      return docType === filterType;
+    }
+    
+    return true;
   }) : [];
 
   const statusOptions = [
@@ -167,6 +175,12 @@ const fetchMouData = async () => {
     "Review BPSDMP 2",
     "Persiapan TTD Para Pihak",
     "Selesai"
+  ];
+
+  const documentTypeOptions = [
+    { value: 'all', label: 'Semua Jenis Perjanjian' },
+    { value: 'MoU', label: 'MoU (Memorandum of Understanding)' },
+    { value: 'PKS', label: 'PKS (Perjanjian Kerja Sama)' }
   ];
 
   const getStatusColor = (status) => {
@@ -254,7 +268,7 @@ const fetchMouData = async () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Instansi Non-Pemerintah Daerah</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Pengelolaan dokumen kerja sama dengan lembaga di luar Pemerintah Daerah.
+            Pengelolaan dokumen kerja sama dengan lembaga di luar Pemerintah Daerah
           </p>
         </div>
         <button
@@ -275,16 +289,30 @@ const fetchMouData = async () => {
             <span className="font-medium">Riwayat Dokumen ({filteredMoUs.length})</span>
           </div>
 
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          >
-            <option value="all">Semua Status</option>
-            {statusOptions.map(status => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-3">
+            <select
+              value={documentTypeFilter}
+              onChange={(e) => setDocumentTypeFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              {documentTypeOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="all">Semua Status</option>
+              {statusOptions.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -295,7 +323,22 @@ const fetchMouData = async () => {
         ) : filteredMoUs.length === 0 ? (
           <div className="text-center py-12 flex flex-col items-center justify-center">
             <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
-            <p className="text-gray-500">Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.</p>
+            <p className="text-gray-500">
+              {documentTypeFilter !== 'all' || statusFilter !== 'all' 
+                ? 'Tidak ada dokumen sesuai filter yang dipilih' 
+                : 'Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.'}
+            </p>
+            {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
+              <button 
+                onClick={() => {
+                  setDocumentTypeFilter('all');
+                  setStatusFilter('all');
+                }}
+                className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -306,7 +349,7 @@ const fetchMouData = async () => {
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat <br /> Kerja Sama</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis <br /> Dokumen</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC <br /> PEMDA</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC <br /> MITRA</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Mulai</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Berakhir</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -318,8 +361,16 @@ const fetchMouData = async () => {
               <tbody className="bg-white divide-y divide-gray-200 whitespace-normal">
                 {filteredMoUs.map(mou => (
                   <tr key={mou.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-center break-words max-w-[100px]">
-                      {mou.documentType || '-'}
+                    <td className="px-4 py-2 text-center break-words max-w-[120px]">
+                      <span className={`inline-block px-2 py-1 text-xs rounded-md font-medium ${
+                        mou.documentType === 'MoU' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : mou.documentType === 'PKS'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {mou.documentType || '-'}
+                      </span>
                     </td>
                     <td className="px-4 py-2 text-center break-words max-w-[150px]">
                       {mou.institutionalLevel || '-'}  
@@ -435,25 +486,25 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
     "Nota Kesepakatan"
   ];
 
-const [formData, setFormData] = useState({
-  documentType: '', 
-  institutionalLevel: '',
-  type: '',
-  customType: '',
-  bpsdmpPIC: '',
-  officeDocNumber: '',
-  partnerDocNumber: '',
-  partnerPIC: '',
-  partnerPICPhone: '',
-  owner: '',
-  notes: '',
-  cooperationStartDate: '',
-  cooperationEndDate: '',
-  status: 'Baru',
-  file: null,
-  finalDocumentName: '',
-  finalDocumentUrl: '',
-});
+  const [formData, setFormData] = useState({
+    documentType: '', 
+    institutionalLevel: '',
+    type: '',
+    customType: '',
+    bpsdmpPIC: '',
+    officeDocNumber: '',
+    partnerDocNumber: '',
+    partnerPIC: '',
+    partnerPICPhone: '',
+    owner: '',
+    notes: '',
+    cooperationStartDate: '',
+    cooperationEndDate: '',
+    status: 'Baru',
+    file: null,
+    finalDocumentName: '',
+    finalDocumentUrl: '',
+  });
 
   useEffect(() => {
     if (initialData) {
@@ -496,7 +547,6 @@ const [formData, setFormData] = useState({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // ✅ PERBAIKAN: 'file' bukan 'final'
     setFormData(prev => ({
       ...prev,
       file: file,
@@ -508,6 +558,12 @@ const [formData, setFormData] = useState({
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // ✅ TAMBAHAN: Validasi documentType
+    if (!formData.documentType) {
+      alert("⚠️ Jenis Perjanjian wajib dipilih!");
+      return;
+    }
+
     const finalType =
       formData.type === 'Lainnya'
         ? (formData.customType || '').trim()
@@ -515,10 +571,15 @@ const [formData, setFormData] = useState({
 
     const { customType, ...rest } = formData;
 
+    // ✅ TAMBAHAN: Console log untuk debug
+    console.log("🔍 Form data sebelum dikirim:", {
+      ...rest,
+      type: finalType,
+    });
+
     onSubmit({
       ...rest,
       type: finalType,
-      documentType: formData.documentType
     });
   };
 
@@ -531,21 +592,22 @@ const [formData, setFormData] = useState({
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Jenis Dokumen */}
-<div>
-  <label className="block text-sm font-medium text-gray-700">Jenis Perjanjian</label>
-  <select
-    name="documentType"
-    value={formData.documentType}
-    onChange={handleChange}
-    required
-    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-  >
-    <option value="">Pilih jenis perjanjian</option>
-    <option value="MoU">MoU (Memorandum of Understanding)</option>
-    <option value="PKS">PKS (Perjanjian Kerja Sama)</option>
-  </select>
-</div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Jenis Perjanjian <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="documentType"
+                value={formData.documentType}
+                onChange={handleChange}
+                required
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Pilih jenis perjanjian</option>
+                <option value="MoU">MoU (Memorandum of Understanding)</option>
+                <option value="PKS">PKS (Perjanjian Kerja Sama)</option>
+              </select>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

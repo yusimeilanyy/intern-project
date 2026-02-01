@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -7,7 +7,6 @@ import {
   BarElement,
   PointElement,
   LineElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -20,7 +19,6 @@ ChartJS.register(
   BarElement,
   PointElement,
   LineElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -28,105 +26,124 @@ ChartJS.register(
 );
 
 const ChartContainer = ({ stats }) => {
-  // Pie Chart - Status Distribution
-  const statusData = {
-    labels: ['Aktif', 'Kadaluarsa', 'Akan Kadaluarsa'],
-    datasets: [
-      {
-        data: [
-          stats.activeCount || 0,
-          stats.expiredCount || 0,
-          stats.expiringSoonCount || 0
-        ],
-        backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
-        borderWidth: 0,
-        hoverOffset: 10, // Hover animation
-      },
-    ],
-  };
 
-  // Bar Chart - MoU vs PKS
+  /* =========================
+     BAR – MOU vs PKS (HIDUP)
+     ========================= */
   const comparisonData = {
     labels: ['MoU', 'PKS'],
     datasets: [
       {
         label: 'Aktif',
         data: [stats.mou?.active || 0, stats.pks?.active || 0],
-        backgroundColor: '#10b981',
-        hoverBackgroundColor: '#1dbf7a', // Hover effect color
+        backgroundColor: '#00B5AA',
+        hoverBackgroundColor: '#00E0CF',
+        borderRadius: 6,
       },
       {
         label: 'Kadaluarsa',
         data: [stats.mou?.expired || 0, stats.pks?.expired || 0],
-        backgroundColor: '#ef4444',
-        hoverBackgroundColor: '#f75c5c', // Hover effect color
+        backgroundColor: '#FF6B35',
+        hoverBackgroundColor: '#FF8A5B',
+        borderRadius: 6,
       },
     ],
   };
 
-  // Line Chart - Monthly Trend
-  const monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  /* =========================
+     LINE – TREND (FOCUS DATA)
+     ========================= */
+  const monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
   const monthlyData = {
     labels: monthlyLabels,
     datasets: [
       {
         label: 'MoU Baru',
         data: stats.monthlyTrend?.mou || Array(12).fill(0),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4,
+        borderColor: '#00336C',
+        backgroundColor: 'rgba(0, 51, 108, 0.15)',
+        tension: 0.45,
         fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: '#00336C',
       },
       {
         label: 'PKS Baru',
         data: stats.monthlyTrend?.pks || Array(12).fill(0),
-        borderColor: '#8b5cf6',
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-        tension: 0.4,
+        borderColor: '#00B5AA',
+        backgroundColor: 'rgba(0, 181, 170, 0.18)',
+        tension: 0.45,
         fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: '#00B5AA',
       },
     ],
   };
 
+  /* =========================
+     OPTIONS – INTERAKTIF
+     ========================= */
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
     plugins: {
-      legend: { position: 'bottom' },
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#00336C',
+          font: { size: 13, weight: 600 },
+          padding: 20,
+          usePointStyle: true,
+        },
+      },
       tooltip: {
-        backgroundColor: '#0c4a6e',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        bodyFont: { weight: 'bold' },
-        borderColor: 'rgba(0, 51, 108, 0.8)',
-        borderWidth: 2,
+        backgroundColor: '#00336C',
+        titleColor: '#FFFFFF',
+        bodyColor: '#FFFFFF',
+        padding: 12,
+        borderColor: '#00B5AA',
+        borderWidth: 1,
+        cornerRadius: 8,
       },
     },
     scales: {
+      x: {
+        ticks: {
+          color: '#475569',
+          font: { size: 12 },
+        },
+        grid: {
+          display: false,
+        },
+      },
       y: {
         beginAtZero: true,
         ticks: {
-          precision: 0
-        }
-      }
-    }
+          color: '#475569',
+          precision: 0,
+          font: { size: 12 },
+        },
+        grid: {
+          color: 'rgba(0,0,0,0.06)',
+        },
+      },
+    },
   };
 
   return (
     <div className="chart-container">
+      {/* HANYA BAR CHART */}
       <div className="chart-row">
         <div className="chart-box">
           <h3 className="chart-title">
-            <i className="fas fa-chart-pie"></i> Distribusi Status Dokumen
-          </h3>
-          <div className="chart-wrapper">
-            <Pie data={statusData} options={options} />
-          </div>
-        </div>
-
-        <div className="chart-box">
-          <h3 className="chart-title">
-            <i className="fas fa-chart-bar"></i> Perbandingan MoU vs PKS
+            <i className="fas fa-chart-bar"></i> Perbandingan MoU & PKS
           </h3>
           <div className="chart-wrapper">
             <Bar
@@ -135,14 +152,15 @@ const ChartContainer = ({ stats }) => {
                 ...options,
                 scales: {
                   x: { stacked: true },
-                  y: { stacked: true, beginAtZero: true }
-                }
+                  y: { stacked: true, beginAtZero: true },
+                },
               }}
             />
           </div>
         </div>
       </div>
 
+      {/* LINE CHART */}
       <div className="chart-box full-width">
         <h3 className="chart-title">
           <i className="fas fa-chart-line"></i> Tren Dokumen Baru (Bulanan)

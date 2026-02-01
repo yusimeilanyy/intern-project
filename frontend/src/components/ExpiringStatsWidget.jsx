@@ -351,9 +351,8 @@ export default function ExpiringStatsWidget() {
                           {/* Pesan Reminder */}
                           <div className="mt-2 bg-yellow-100 border border-yellow-200 rounded p-2">
                             <p className="text-xs text-yellow-800 font-medium">
-                              📢 <strong>PERSIAPKAN DOKUMEN BARU!</strong><br/>
-                              Dokumen ini akan expired dalam 8-14 hari. 
-                              Mulai proses perpanjangan untuk menghindari gangguan kerja sama.
+                              📢 <strong>SEGERA PERSIAPKAN DOKUMEN!</strong><br/>
+                              Dokumen ini akan expired dalam 8-14 hari
                             </p>
                           </div>
                         </div>

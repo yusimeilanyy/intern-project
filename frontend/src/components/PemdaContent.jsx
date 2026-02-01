@@ -59,6 +59,7 @@ export default function PemdaContent() {
   const [showForm, setShowForm] = useState(false);
   const [editingMou, setEditingMou] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [documentTypeFilter, setDocumentTypeFilter] = useState('all'); // ✅ TAMBAHAN: Filter Jenis Perjanjian
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
   const [loading, setLoading] = useState(true);
 
@@ -165,11 +166,13 @@ export default function PemdaContent() {
     }
   };
 
-  // ✅ Validasi mous selalu array sebelum filter
+  // ✅ PERBAIKAN: Filter dengan dua kriteria (Status + Jenis Perjanjian)
   const filteredMoUs = Array.isArray(mous) 
     ? mous.filter(mou => {
-        if (filter === 'all') return true;
-        return mou.status === filter;
+        const statusMatch = filter === 'all' || mou.status === filter;
+        const typeMatch = documentTypeFilter === 'all' || 
+                         mou.documentType === documentTypeFilter;
+        return statusMatch && typeMatch;
       })
     : [];
 
@@ -306,7 +309,7 @@ export default function PemdaContent() {
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Instansi Pemerintah Daerah</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Pengelolaan dokumen kerja sama dengan Pemerintah Daerah beserta perangkat daerah.
+            Pengelolaan dokumen kerja sama dengan Pemerintah Daerah beserta perangkat daerah
           </p>
         </div>
         <button
@@ -328,16 +331,31 @@ export default function PemdaContent() {
             <span className="font-medium">Riwayat Dokumen ({filteredMoUs.length})</span>
           </div>
 
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          >
-            <option value="all">Semua Status</option>
-            {statusOptions.map(status => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
+          {/* ✅ TAMBAHKAN FILTER JENIS PERJANJIAN DI SINI */}
+          <div className="flex items-center gap-3">
+            {/* Filter Jenis Perjanjian */}
+            <select
+              value={documentTypeFilter}
+              onChange={(e) => setDocumentTypeFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="all">Semua Jenis Perjanjian</option>
+              <option value="MoU">MoU (Memorandum of Understanding)</option>
+              <option value="PKS">PKS (Perjanjian Kerja Sama)</option>
+            </select>
+
+            {/* Filter Status */}
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="all">Semua Status</option>
+              {statusOptions.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Loading State */}
@@ -358,7 +376,7 @@ export default function PemdaContent() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perjanjian</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perjanjian</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat <br /> Kerja Sama</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis <br /> Dokumen</th>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
