@@ -3,6 +3,7 @@ import StatCard from './StatCard';
 import ChartContainer from './ChartContainer';
 import DocumentTable from './DocumentTable';
 import './Dashboard.css';
+import ExpiringStatsWidget from './ExpiringStatsWidget'; // ✅ SUDAH ADA
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -114,6 +115,9 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       <h1 className="dashboard-title">Ringkasan MoU & PKS</h1>
+      
+      {/* ✅ WIDGET REMINDER - DITAMBAHKAN DI SINI */}
+      <ExpiringStatsWidget />
       
       {/* Statistik Utama */}
       <div className="stats-grid">

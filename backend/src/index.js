@@ -11,9 +11,11 @@ import { fileURLToPath } from 'url';
 import { pool } from './db.js';
 import authRoutes from "./routes/auth.js";
 import mousRoutes from "./routes/mous.js";
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import renewalRoutes from './routes/renewalRoutes.js';
 import usersRoutes from './routes/users.js';
 import { requireAuth } from "./middleware/auth.js";
-import { getDashboardData } from "./controllers/mousController.js";  // ✅ Import langsung dari controller
+import { getDashboardData } from "./controllers/mousController.js";  
 import { setupReminderJobs } from './jobs/reminderJob.js';
 dotenv.config();
 
@@ -75,6 +77,12 @@ app.get("/api/dashboard", requireAuth, getDashboardData);
 
 // MoU routes
 app.use("/api/mous", requireAuth, mousRoutes);
+
+// MoU Dashboard routes
+app.use('/api/dashboard', dashboardRoutes);
+
+// Renewwal routes
+app.use('/api/renewal', renewalRoutes);
 
 // Users routes
 app.use("/api/users", requireAuth, usersRoutes);
