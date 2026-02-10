@@ -138,7 +138,7 @@ const Dashboard = () => {
       {/* ✅ WIDGET REMINDER */}
       <ExpiringStatsWidget />
       
-      {/* ✅ STAT CARDS DENGAN ONCLICK - WRAP DALAM DIV KLIKABLE */}
+      {/* ✅ STAT CARDS — UKURAN & GAYA KONSISTEN */}
       <div className="stats-grid">
         <div 
           onClick={() => handleStatClick('documentType', 'MoU')} 
@@ -148,8 +148,9 @@ const Dashboard = () => {
           <StatCard 
             title="Total MoU" 
             value={stats.totalMou} 
+            subtitle={`${stats.mou?.active || 0} aktif`} 
             icon="fa-file-contract" 
-            color="primary" 
+            color="success" 
           />
         </div>
         <div 
@@ -160,39 +161,28 @@ const Dashboard = () => {
           <StatCard 
             title="Total PKS" 
             value={stats.totalPks} 
+            subtitle={`${stats.pks?.active || 0} aktif`} 
             icon="fa-file-contract" 
             color="success" 
           />
         </div>
         <div 
-          onClick={() => handleStatClick('status', 'Aktif')} 
+          onClick={() => {
+            setDocumentTypeFilter('all');
+            setStatusFilter('Aktif');
+          }}
           style={{ cursor: 'pointer' }}
           title="Klik untuk melihat dokumen aktif"
         >
           <StatCard 
-            title="Aktif" 
-            value={stats.activeCount} 
+            title="Dokumen Aktif" 
+            value={(stats.mou?.active || 0) + (stats.pks?.active || 0)} 
+            subtitle={`${(stats.mou?.active || 0) + (stats.pks?.active || 0)} aktif dari ${stats.totalMou + stats.totalPks} dokumen`} 
             icon="fa-check-circle" 
             color="success" 
-            subtitle={`+${stats.activeCount - stats.expiredCount} dari total`}
-          />
-        </div>
-        <div 
-          onClick={() => handleStatClick('status', 'Kadaluarsa')} 
-          style={{ cursor: 'pointer' }}
-          title="Klik untuk melihat dokumen kadaluarsa"
-        >
-          <StatCard 
-            title="Kadaluarsa" 
-            value={stats.expiredCount} 
-            icon="fa-exclamation-triangle" 
-            color="danger" 
           />
         </div>
       </div>
-
-      {/* Grafik */}
-      <ChartContainer stats={stats} />
 
       {/* ✅ TAMBAHKAN INFO FILTER AKTIF */}
       {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
@@ -239,11 +229,16 @@ const Dashboard = () => {
         </div>
       )}
 
+      
       {/* Tabel Dokumen dengan filter LENGKAP */}
       <DocumentTable 
         documents={filteredDocuments} 
         loading={false} 
       />
+      
+
+      {/* Grafik */}
+      <ChartContainer stats={stats} />
     </div>
   );
 };

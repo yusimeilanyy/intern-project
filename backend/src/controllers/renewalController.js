@@ -125,3 +125,62 @@ export const getRenewalHistory = async (req, res) => {
     res.status(500).json({ message: "Gagal mengambil history perpanjangan" });
   }
 };
+
+// ========================================
+// TANDAI DOKUMEN KADALUARSA SEBAGAI "TIDAK DIPERPANJANG"
+// ========================================
+export const markAsNotRenewed = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Ambil dokumen dari database
+    const [rows] = await pool.query("SELECT * FROM mous WHERE id = ?", [id]);
+    
+    if (!rows[0]) {
+      return res.status(404).json({ message: "Dokumen tidak ditemukan" });
+    }
+
+    // Parse payload
+    const payload = JSON.parse(rows[0].payload);
+    
+    // Pastikan dokumen sudah kadaluarsa
+    const today = new Date();
+    const endDate = new Date(payload.cooperationEndDate);
+    if (endDate > today) {
+      return res.status(400).json({ 
+        message: "Dokumen belum kadaluarsa. Tidak bisa ditandai sebagai 'tidak diperpanjang'." 
+      });
+    }
+
+    // Update status menjadi "Selesai" (atau "Tidak Diperpanjang")
+    const updatedPayload = {
+      ...payload,
+      status: 'Selesai', // ✅ Ini kunci: ubah status agar tidak muncul di widget
+      renewalStatus: 'not_renewed',
+      markedAsNotRenewedAt: new Date().toISOString()
+    };
+
+    // Simpan ke database
+    await pool.query(
+      "UPDATE mous SET payload = ?, updated_at = NOW() WHERE id = ?",
+      [JSON.stringify(updatedPayload), id]
+    );
+
+    console.log(`✅ Dokumen ID ${id} ditandai sebagai 'tidak diperpanjang'`);
+    
+    res.json({
+      message: "Dokumen berhasil ditandai sebagai tidak diperpanjang",
+      document: {
+        id: parseInt(id),
+        status: 'Selesai'
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Error marking as not renewed:", error);
+    res.status(500).json({ 
+      message: "Gagal menandai dokumen", 
+      error: error.message 
+    });
+  }
+};

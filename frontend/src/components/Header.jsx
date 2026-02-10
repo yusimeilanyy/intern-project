@@ -20,8 +20,7 @@ export default function Header() {
               </h1>
 
               <p className="text-s text-gray-500 leading-snug whitespace-nowrap overflow-hidden text-ellipsis">
-                Balai Pengembangan Sumber Daya Manusia dan Penelitian Komunikasi
-                dan Informatika Manado
+                Balai Pelatihan Sumber Daya Manusia Komunikasi dan Digital Manado
               </p>
             </div>
           </div>

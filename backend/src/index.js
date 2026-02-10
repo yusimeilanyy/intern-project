@@ -17,6 +17,7 @@ import usersRoutes from './routes/users.js';
 import { requireAuth } from "./middleware/auth.js";
 import { getDashboardData } from "./controllers/mousController.js";  
 import { setupReminderJobs } from './jobs/reminderJob.js';
+import { renewExpiredDocument, getRenewalHistory, markAsNotRenewed } from "./controllers/renewalController.js";
 dotenv.config();
 
 const app = express();
@@ -83,6 +84,8 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // Renewwal routes
 app.use('/api/renewal', renewalRoutes);
+
+app.patch("/api/mous/:id/status", requireAuth, markAsNotRenewed);
 
 // Users routes
 app.use("/api/users", requireAuth, usersRoutes);

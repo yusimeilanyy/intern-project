@@ -95,8 +95,8 @@ export const getExpiringStats = async (req, res) => {
         JSON_EXTRACT(m.payload, '$.cooperationEndDate') IS NOT NULL
         -- Hanya dokumen yang sudah expired
         AND STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.cooperationEndDate')), '%Y-%m-%d') < CURDATE()
-        -- Kecuali yang sudah diperpanjang
-        AND JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.status')) != 'Diperpanjang'
+        -- Kecuali yang sudah diperpanjang ATAU ditandai selesai
+        AND JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.status')) NOT IN ('Diperpanjang', 'Selesai')
       ORDER BY endDate DESC
     `);
 

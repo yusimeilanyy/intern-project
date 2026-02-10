@@ -139,7 +139,6 @@ export default function ExpiringStatsWidget() {
         alert(`✅ Dokumen berhasil diperpanjang!\n\nTanggal baru: ${new Date(newEndDate).toLocaleDateString('id-ID')}\nPerpanjangan: ${result.document.extensionYears} tahun`);
         
         // Refresh data
-        const token = localStorage.getItem('token');
         const freshResponse = await fetch('/api/dashboard/expiring-stats', {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -160,6 +159,41 @@ export default function ExpiringStatsWidget() {
       alert('Terjadi kesalahan saat memperpanjang dokumen');
     } finally {
       setRenewalLoading(false);
+    }
+  };
+
+  // ✅ HANDLER: TANDAI SEBAGAI TIDAK DIPERPANJANG
+  const markAsNotRenewed = async (docId) => {
+    if (!window.confirm("⚠️ Yakin dokumen ini tidak akan diperpanjang? Ini bersifat permanen dan tidak bisa dibatalkan.")) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/mous/${docId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'Selesai' })
+      });
+
+      if (response.ok) {
+        alert('✅ Dokumen ditandai sebagai "Tidak Diperpanjang".');
+        // Refresh data
+        const freshResponse = await fetch('/api/dashboard/expiring-stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (freshResponse.ok) {
+          const freshData = await freshResponse.json();
+          setStats(freshData);
+        }
+      } else {
+        const err = await response.json();
+        alert(`Gagal: ${err.message}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Gagal menandai dokumen.');
     }
   };
 
@@ -431,6 +465,15 @@ export default function ExpiringStatsWidget() {
                             <InformationCircleIcon className="h-4 w-4" />
                             History
                           </button>
+                            {/* Tombol Tidak Diperpanjang */}
+  <button
+    onClick={() => markAsNotRenewed(doc.id)}
+    className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-1 text-xs"
+    title="Tandai sebagai tidak diperpanjang (dokumen selesai)"
+  >
+    <ExclamationTriangleIcon className="h-4 w-4" />
+    Tidak Diperpanjang
+  </button>
                         </div>
                       </div>
                     </div>
