@@ -10,20 +10,64 @@ const Dashboard = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // ✅ TAMBAHKAN STATE UNTUK FILTER STATUS
   const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'Aktif', 'Kadaluarsa'
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  // ✅ TAMBAHKAN HANDLER UNTUK KLIK STAT CARDS
   const handleStatClick = (filterType, value) => {
     if (filterType === 'documentType') {
       setDocumentTypeFilter(value);
-      setStatusFilter('all'); // Reset status filter
+      setStatusFilter('all');
     } else if (filterType === 'status') {
       setStatusFilter(value);
-      setDocumentTypeFilter('all'); // Reset document type filter
+      setDocumentTypeFilter('all');
     }
+  };
+
+  // ✅ PERBAIKAN: calculateStats dengan validasi tanggal
+  const calculateStats = (docs) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let activeMou = 0;
+    let expiredMou = 0;
+    let activePks = 0;
+    let expiredPks = 0;
+
+    docs.forEach(doc => {
+      if (!doc.cooperationEndDate || doc.cooperationEndDate === '-') return;
+      
+      // ✅ VALIDASI FORMAT TANGGAL
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(doc.cooperationEndDate)) {
+        console.warn("⚠️ Format tanggal tidak valid:", doc.cooperationEndDate, "dokumen:", doc.id);
+        return;
+      }
+      
+      const endDate = new Date(doc.cooperationEndDate);
+      if (isNaN(endDate.getTime())) {
+        console.warn("⚠️ Tanggal tidak valid:", doc.cooperationEndDate, "dokumen:", doc.id);
+        return;
+      }
+      
+      endDate.setHours(0, 0, 0, 0);
+      
+      if (endDate >= today) {
+        if (doc.documentType === 'MoU') activeMou++;
+        else if (doc.documentType === 'PKS') activePks++;
+      } else {
+        if (doc.documentType === 'MoU') expiredMou++;
+        else if (doc.documentType === 'PKS') expiredPks++;
+      }
+    });
+
+    return {
+      totalMou: docs.filter(d => d.documentType === 'MoU').length,
+      totalPks: docs.filter(d => d.documentType === 'PKS').length,
+      activeCount: activeMou + activePks,
+      expiredCount: expiredMou + expiredPks,
+      mou: { active: activeMou, expired: expiredMou },
+      pks: { active: activePks, expired: expiredPks }
+    };
   };
 
   useEffect(() => {
@@ -57,19 +101,14 @@ const Dashboard = () => {
           totalDocuments: data.documents?.length
         });
         
-        setStats({
-          totalMou: data.totalMou,
-          totalPks: data.totalPks,
-          activeCount: data.activeCount,
-          expiredCount: data.expiredCount,
-          mou: data.mou,
-          pks: data.pks
-        });
+        const documentsArray = Array.isArray(data.documents) ? data.documents : [];
+        const calculatedStats = calculateStats(documentsArray);
         
-        setDocuments(Array.isArray(data.documents) ? data.documents : []);
+        setStats(calculatedStats);
+        setDocuments(documentsArray);
         
       } catch (err) {
-        console.error("❌ Error fetching dashboard data:", err);
+        console.error("❌ Error fetching dashboard ", err);
         setError(err.message);
         
         if (err.message.includes('401') || err.message.includes('sesi')) {
@@ -86,24 +125,35 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ FILTER DOKUMEN BERDASARKAN KEDUA FILTER (DOCUMENT TYPE + STATUS)
+  // ✅ PERBAIKAN: Filter dengan validasi tanggal
   const filteredDocuments = documents.filter(doc => {
-    // Filter by Document Type
     if (documentTypeFilter !== 'all' && doc.documentType !== documentTypeFilter) {
       return false;
     }
     
-    // Filter by Status (Aktif/Kadaluarsa berdasarkan tanggal)
     if (statusFilter !== 'all') {
       const today = new Date();
-      const endDate = doc.cooperationEndDate ? new Date(doc.cooperationEndDate) : null;
+      today.setHours(0, 0, 0, 0);
       
+      const endDate = doc.cooperationEndDate ? new Date(doc.cooperationEndDate) : null;
       if (!endDate || doc.cooperationEndDate === '-') return false;
       
+      // ✅ VALIDASI FORMAT TANGGAL
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(doc.cooperationEndDate)) {
+        return false;
+      }
+      
+      if (isNaN(endDate.getTime())) {
+        return false;
+      }
+      
+      endDate.setHours(0, 0, 0, 0);
+      
       if (statusFilter === 'Aktif') {
-        return endDate > today;
+        return endDate >= today;
       } else if (statusFilter === 'Kadaluarsa') {
-        return endDate <= today;
+        return endDate < today;
       }
     }
     
@@ -135,10 +185,10 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <h1 className="dashboard-title">Ringkasan MoU & PKS</h1>
       
-      {/* ✅ WIDGET REMINDER */}
       <ExpiringStatsWidget />
+
+      <div style={{ height: '24px' }}></div>
       
-      {/* ✅ STAT CARDS — UKURAN & GAYA KONSISTEN */}
       <div className="stats-grid">
         <div 
           onClick={() => handleStatClick('documentType', 'MoU')} 
@@ -184,7 +234,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* ✅ TAMBAHKAN INFO FILTER AKTIF */}
       {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
         <div className="filter-section" style={{ 
           marginBottom: '20px', 
@@ -230,15 +279,14 @@ const Dashboard = () => {
       )}
 
       
-      {/* Tabel Dokumen dengan filter LENGKAP */}
       <DocumentTable 
         documents={filteredDocuments} 
         loading={false} 
       />
       
+      <div style={{ height: '24px' }}></div> 
 
-      {/* Grafik */}
-      <ChartContainer stats={stats} />
+      <ChartContainer stats={stats} documents={documents} />
     </div>
   );
 };
