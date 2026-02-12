@@ -1,17 +1,24 @@
+import { LogOut } from "lucide-react";
+
 export default function LogoutButton() {
   const handleLogout = () => {
-    // hapus token login
     localStorage.removeItem("token");
-
-    // arahkan ke halaman login 
     window.location.href = "/login";
   };
 
   return (
     <button
       onClick={handleLogout}
-      className="bg-red-600 text-white text-xs px-2 py-1 rounded-md hover:bg-red-700"
+      className="
+        relative pb-1
+        flex items-center gap-2
+        text-sm font-medium
+        text-gray-600
+        hover:text-[#00336C]
+        transition-all duration-200
+      "
     >
+      <LogOut size={16} />
       Logout
     </button>
   );

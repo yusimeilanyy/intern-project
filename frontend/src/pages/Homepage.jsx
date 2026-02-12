@@ -7,7 +7,7 @@ export default function Homepage({ activeTab, onTabChange }) {
   const isPemda = activeTab === "pemda"; // Check if activeTab is 'pemda'
 
   return (
-    <div className="pt-6 space-y-6">
+    <div className="pt-12 space-y-8"> {/* Dinaikkan dari pt-6 menjadi pt-12 */}
       {/* Tab Navigation */}
       <div
         role="tablist"
@@ -45,7 +45,7 @@ export default function Homepage({ activeTab, onTabChange }) {
             type="button"
             role="tab"
             aria-selected={!isPemda}
-            onClick={() => onTabChange("non-pemda")} // Ensure this is correct
+            onClick={() => onTabChange("non-pemda")}
             className={`group flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               !isPemda ? "text-blue-800" : "text-slate-600 hover:text-slate-900"
             }`}

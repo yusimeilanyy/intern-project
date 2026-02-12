@@ -303,11 +303,11 @@ export default function PemdaContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Instansi Pemerintah Daerah</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mt-2">Instansi Pemerintah Daerah</h2>
           <p className="text-sm text-gray-500 mt-1">
             Pengelolaan dokumen kerja sama dengan Pemerintah Daerah beserta perangkat daerah
           </p>
@@ -317,14 +317,14 @@ export default function PemdaContent() {
           className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-gray-800"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-1 0H6" />
           </svg>
           Tambah Dokumen
         </button>
       </div>
 
       {/* Content Box */}
-      <div className="bg-white rounded-lg border p-6">
+      <div className="bg-white rounded-lg border p-6 mt-3">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <img src={FileBlack} className="h-5 w-5" alt="File Icon" />
@@ -358,117 +358,159 @@ export default function PemdaContent() {
           </div>
         </div>
 
-        {/* Loading State */}
         {loading ? (
           <div className="text-center py-12">
             <div className="spinner mx-auto"></div>
             <p className="text-gray-500 mt-4">Memuat data...</p>
           </div>
+        ) : filteredMoUs.length === 0 ? (
+          <div className="text-center py-12 flex flex-col items-center justify-center">
+            <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
+            <p className="text-gray-500">
+              {documentTypeFilter !== 'all' || statusFilter !== 'all' 
+                ? 'Tidak ada dokumen sesuai filter yang dipilih' 
+                : 'Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.'}
+            </p>
+            {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
+              <button 
+                onClick={() => {
+                  setDocumentTypeFilter('all');
+                  setStatusFilter('all');
+                }}
+                className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+              >
+                Reset Filter
+              </button>
+            )}
+          </div>
         ) : (
-          // Tabel atau Kosong
-          filteredMoUs.length === 0 ? (
-            <div className="text-center py-12 flex flex-col items-center justify-center">
-              <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
-              <p className="text-gray-500">Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perjanjian</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat <br /> Kerja Sama</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis <br /> Dokumen</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC <br /> PEMDA</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Mulai</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Berakhir</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen <br /> Final</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200 whitespace-normal">
-                  {filteredMoUs.map(mou => (
-                    <tr key={mou.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                        <span className={`inline-block px-2 py-1 text-xs rounded-md font-medium ${getDocumentTypeColor(mou.documentType || 'MoU')}`}>
-                          {mou.documentType || 'MoU'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                        {mou.institutionalLevel || '-'}
-                      </td>
-                      <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                        {mou.type || '-'}
-                      </td>
-                      <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                        {mou.bpsdmpPIC || '-'}
-                      </td>
-                      <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                        {mou.partnerPIC || '-'}
-                        {mou.partnerPICPhone && (
-                          <div className="text-xs text-gray-500">{mou.partnerPICPhone}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
-                        {mou.cooperationStartDate || '-'}
-                      </td>
-                      <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
-                        {mou.cooperationEndDate || '-'}
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        <span
-                          className={`inline-block px-2 py-1 text-xs rounded-md ${getStatusColor(mou.status)} max-w-[150px] break-words`}
-                          title={mou.status}
-                        >
-                          {mou.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                        {mou.notes || '-'}
-                      </td>
 
-                      <td className="px-4 py-2 text-center whitespace-nowrap">
-                        {mou.finalDocumentUrl ? (
-                          <button
-                            onClick={() => handlePreview(mou.finalDocumentUrl, mou.finalDocumentName || "document.pdf")}
-                            title="Lihat dokumen"
-                          >
-                            <img src={FinalDocIcon} className="h-4 w-4" alt="Final Doc Icon" />
-                          </button>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
+<div className="overflow-x-auto">
+  <table className="min-w-full text-sm">
 
-                      <td className="px-4 py-2 text-center whitespace-nowrap">
-                        <div className="flex justify-center gap-3">
-                          <button
-                            onClick={() => {
-                              setEditingMou(mou);
-                              setShowForm(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            <img src={EditIcon} className="h-5 w-5" alt="Edit Icon" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(mou.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <img src={DeleteIcon} className="h-5 w-5" alt="Delete Icon" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+    <thead className="border-b border-gray-300">
+      <tr className="text-[11px] text-gray-500 uppercase tracking-wide">
+        <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Perjanjian</th>
+        <th className="px-4 py-3 text-center font-semibold">Tingkat <br /> Kerja Sama</th>
+        <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Dokumen</th>
+        <th className="px-4 py-3 text-center font-semibold">PIC BPSDMP</th>
+        <th className="px-4 py-3 text-center font-semibold">PIC PEMDA</th>
+        <th className="px-4 py-3 text-center font-semibold">Tanggal <br /> Mulai</th>
+        <th className="px-4 py-3 text-center font-semibold">Tanggal <br /> Berakhir</th>
+        <th className="px-4 py-3 text-center font-semibold">Status</th>
+        <th className="px-4 py-3 text-center font-semibold">Catatan</th>
+        <th className="px-6 py-3 text-center font-semibold">Dokumen <br /> Final</th>
+        <th className="px-6 py-3 text-center font-semibold">Aksi</th>
+      </tr>
+    </thead>
+
+    <tbody className="divide-y divide-gray-200">
+      {filteredMoUs.map((mou) => (
+        <tr key={mou.id} className="hover:bg-gray-100 transition">
+          
+          <td className="px-2 py-8 text-center align-middle">
+            <span
+              className={`inline-block px-2 py-1 text-xs rounded-md font-medium ${getDocumentTypeColor(
+                mou.documentType || "MoU"
+              )}`}
+            >
+              {mou.documentType || "MoU"}
+            </span>
+          </td>
+
+          <td className="px-2 py-8 text-center align-middle max-w-[180px] break-words">
+            {mou.institutionalLevel || "-"}
+          </td>
+
+          <td className="px-4 py-8 text-center align-middle max-w-[160px] break-words">
+            {mou.type || "-"}
+          </td>
+
+          <td className="px-4 py-8 text-center align-middle">
+            {mou.bpsdmpPIC || "-"}
+          </td>
+
+          <td className="px-4 py-8 text-center align-middle">
+            {mou.partnerPIC || "-"}
+            {mou.partnerPICPhone && (
+              <div className="text-xs text-gray-500 mt-1">
+                {mou.partnerPICPhone}
+              </div>
+            )}
+          </td>
+
+          <td className="px-4 py-8 text-center align-middle whitespace-nowrap">
+            {mou.cooperationStartDate || "-"}
+          </td>
+
+          <td className="px-4 py-8 text-center align-middle whitespace-nowrap">
+            {mou.cooperationEndDate || "-"}
+          </td>
+
+          <td className="px-4 py-8 text-center align-middle">
+            <span
+              className={`inline-block px-2 py-1 text-xs rounded-md ${getStatusColor(
+                mou.status
+              )}`}
+            >
+              {mou.status}
+            </span>
+          </td>
+
+          <td className="px-4 py-8 text-center align-middle max-w-[180px] break-words">
+            {mou.notes || "-"}
+          </td>
+
+<td className="px-6 py-6 text-center min-w-[90px]">
+  <div className="flex items-center justify-center h-full min-h-[40px]">
+    {mou.finalDocumentUrl ? (
+      <button
+        onClick={() =>
+          handlePreview(
+            mou.finalDocumentUrl,
+            mou.finalDocumentName || "document.pdf"
           )
-        )}
+        }
+        className="flex items-center justify-center"
+      >
+        <img
+          src={FinalDocIcon}
+          className="h-4 w-4"
+          alt="Final Doc"
+        />
+      </button>
+    ) : (
+      "-"
+    )}
+  </div>
+</td>
+
+          <td className="px-6 py-8 text-center align-middle min-w-[100px]">
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => {
+                  setEditingMou(mou);
+                  setShowForm(true);
+                }}
+                className="hover:opacity-70 transition"
+              >
+                <img src={EditIcon} className="h-4 w-4" alt="Edit" />
+              </button>
+
+              <button
+                onClick={() => handleDelete(mou.id)}
+                className="hover:opacity-70 transition"
+              >
+                <img src={DeleteIcon} className="h-4 w-4" alt="Delete" />
+              </button>
+            </div>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+          )}
       </div>
 
       {/* Modal Form */}

@@ -263,10 +263,10 @@ export default function NonPemdaContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-6">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Instansi Non-Pemerintah Daerah</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mt-2">Instansi Non-Pemerintah Daerah</h2>
           <p className="text-sm text-gray-500 mt-1">
             Pengelolaan dokumen kerja sama dengan lembaga di luar Pemerintah Daerah
           </p>
@@ -282,7 +282,7 @@ export default function NonPemdaContent() {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg border p-6">
+      <div className="bg-white rounded-lg border p-6 mt-3">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <img src={FileBlack} className="h-5 w-5" alt="File Icon" />
@@ -341,6 +341,7 @@ export default function NonPemdaContent() {
             )}
           </div>
         ) : (
+          
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">

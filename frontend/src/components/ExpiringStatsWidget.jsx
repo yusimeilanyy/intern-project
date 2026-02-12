@@ -7,8 +7,8 @@ import {
   CalendarIcon, 
   ClockIcon, 
   ExclamationTriangleIcon, 
-  ArrowPathIcon,  // ✅ TAMBAHAN UNTUK IKON PERPANJANGAN
-  InformationCircleIcon 
+  ArrowPathIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 // ========================================
@@ -27,6 +27,9 @@ export default function ExpiringStatsWidget() {
   
   // State untuk expand/collapse widget
   const [expanded, setExpanded] = useState(false);
+  
+  // ✅ STATE TAMBAHAN UNTUK FILTER KATEGORI
+  const [activeCategory, setActiveCategory] = useState("all");
 
   // ✅ STATE TAMBAHAN UNTUK FITUR PERPANJANGAN
   const [showRenewModal, setShowRenewModal] = useState(false);
@@ -263,7 +266,7 @@ export default function ExpiringStatsWidget() {
           <div className="flex items-center gap-2">
             <BellIcon className="h-6 w-6 text-red-600" />
             <div>
-              <h3 className="font-bold text-lg text-red-800">⚠️ Dokumen Perlu Perhatian</h3>
+              <h3 className="font-bold text-lg text-red-800">Dokumen Perlu Perhatian</h3>
               <p className="text-sm text-red-600 mt-1">
                 {expanded ? 'Klik untuk sembunyikan' : 'Klik untuk lihat detail'}
               </p>
@@ -272,20 +275,56 @@ export default function ExpiringStatsWidget() {
           
           {/* Statistik Singkat */}
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs text-red-600 font-medium">URGENT</div>
-              <div className="text-2xl font-bold text-red-600">{stats.urgent.count}</div>
+            {/* URGENT */}
+            <div 
+              className={`text-right cursor-pointer ${
+                activeCategory === 'urgent' 
+                  ? 'text-red-800 font-bold' 
+                  : 'text-red-600 hover:text-red-800'
+              }`}
+              onClick={() => setActiveCategory('urgent')}
+            >
+              <div className="text-xs font-medium">URGENT</div>
+              <div className="text-2xl font-bold">{stats.urgent.count}</div>
             </div>
-            <div className="text-right">
-              <div className="text-xs text-yellow-600 font-medium">PERINGATAN</div>
-              <div className="text-2xl font-bold text-yellow-600">{stats.warning.count}</div>
+            
+            {/* PERINGATAN */}
+            <div 
+              className={`text-right cursor-pointer ${
+                activeCategory === 'warning' 
+                  ? 'text-yellow-800 font-bold' 
+                  : 'text-yellow-600 hover:text-yellow-800'
+              }`}
+              onClick={() => setActiveCategory('warning')}
+            >
+              <div className="text-xs font-medium">PERINGATAN</div>
+              <div className="text-2xl font-bold">{stats.warning.count}</div>
             </div>
-            <div className="text-right">
-              <div className="text-xs text-gray-600 font-medium">KADALUARSA</div>
-              <div className="text-2xl font-bold text-gray-600">{stats.expired.count}</div>
+            
+            {/* KADALUARSA */}
+            <div 
+              className={`text-right cursor-pointer ${
+                activeCategory === 'expired' 
+                  ? 'text-gray-800 font-bold' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+              onClick={() => setActiveCategory('expired')}
+            >
+              <div className="text-xs font-medium">KADALUARSA</div>
+              <div className="text-2xl font-bold">{stats.expired.count}</div>
             </div>
+            
             <div className="w-px h-8 bg-red-200"></div>
-            <div className="text-right">
+            
+            {/* TOTAL */}
+            <div 
+              className={`text-right cursor-pointer ${
+                activeCategory === 'all' 
+                  ? 'text-gray-800 font-bold' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+              onClick={() => setActiveCategory('all')}
+            >
               <div className="text-xs text-gray-600 font-medium">TOTAL</div>
               <div className="text-2xl font-bold text-gray-800">{totalDocs}</div>
             </div>
@@ -295,9 +334,8 @@ export default function ExpiringStatsWidget() {
         {/* Content (Collapsible) */}
         {expanded && (
           <div className="divide-y divide-gray-200">
-            
             {/* Bagian 1: Dokumen URGENT */}
-            {stats.urgent.count > 0 && (
+            {activeCategory === 'urgent' && stats.urgent.count > 0 && (
               <div className="p-4 bg-red-50">
                 <div className="flex items-center gap-2 mb-3">
                   <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
@@ -334,9 +372,9 @@ export default function ExpiringStatsWidget() {
                           {/* Pesan Reminder */}
                           <div className="mt-2 bg-red-100 border border-red-200 rounded p-2">
                             <p className="text-xs text-red-800 font-medium">
-                              📢 <strong>SEGERA PROSES PERPANJANGAN!</strong><br/>
-                              Dokumen ini akan expired dalam waktu kurang dari 7 hari. 
-                              Silakan hubungi PIC untuk mempersiapkan dokumen baru.
+                              📢 <strong>SEGERA SIAPKAN DOKUMEN DAN LAKUKAN KOORDINASI</strong><br/>
+                              Masa berlaku dokumen akan segera berakhir dalam waktu kurang dari 7 hari. <br />
+                              Segera lakukan koordinasi dengan pihak terkait untuk memastikan kelengkapan administrasi.
                             </p>
                           </div>
                         </div>
@@ -348,7 +386,7 @@ export default function ExpiringStatsWidget() {
             )}
 
             {/* Bagian 2: Dokumen WARNING */}
-            {stats.warning.count > 0 && (
+            {activeCategory === 'warning' && stats.warning.count > 0 && (
               <div className="p-4 bg-yellow-50">
                 <div className="flex items-center gap-2 mb-3">
                   <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600" />
@@ -385,8 +423,9 @@ export default function ExpiringStatsWidget() {
                           {/* Pesan Reminder */}
                           <div className="mt-2 bg-yellow-100 border border-yellow-200 rounded p-2">
                             <p className="text-xs text-yellow-800 font-medium">
-                              📢 <strong>SEGERA PERSIAPKAN DOKUMEN!</strong><br/>
-                              Dokumen ini akan expired dalam 8-14 hari
+                              📢 <strong>SEGERA SIAPKAN DOKUMEN DAN LAKUKAN KOORDINASI</strong><br/>
+                              Masa berlaku dokumen akan segera berakhir dalam waktu 8-14 hari. <br />
+                              Mohon segera melakukan persiapan dan koordinasi sesuai ketentuan yang berlaku.
                             </p>
                           </div>
                         </div>
@@ -398,7 +437,7 @@ export default function ExpiringStatsWidget() {
             )}
 
             {/* Bagian 3: Dokumen EXPIRED dengan tombol perpanjang ✅ */}
-            {stats.expired.count > 0 && (
+            {activeCategory === 'expired' && stats.expired.count > 0 && (
               <div className="p-4 bg-gray-50">
                 <div className="flex items-center gap-2 mb-3">
                   <ExclamationTriangleIcon className="h-5 w-5 text-gray-600" />
@@ -435,50 +474,62 @@ export default function ExpiringStatsWidget() {
                           {/* Status & Pesan */}
                           <div className="mt-3 bg-gray-100 border border-gray-300 rounded p-3">
                             <p className="text-xs text-gray-800 font-medium">
-                              ⚠️ <strong>DOKUMEN SUDAH KADALUARSA!</strong><br/>
+                              ⚠️ <strong>MASA BERLAKU DOKUMEN TELAH BERAKHIR</strong><br/>
                               Status: {doc.status}<br/>
                               <span className="text-red-600 font-semibold">
-                                📢 BUTUH KONFIRMASI: Apakah dokumen ini akan diperpanjang?
+                                📢 Diperlukan Keputusan Tindak Lanjut <br />
+                                Segera lakukan konfirmasi terkait perpanjangan atau penetapan status akhir dokumen.
                               </span>
                             </p>
                           </div>
                         </div>
                         
-                        {/* ✅ TOMOL AKSI DI SAMPING KANAN */}
-                        <div className="flex flex-col gap-2 ml-4 flex-shrink-0">
-                          {/* Tombol Perpanjang */}
-                          <button
-                            onClick={() => handleRenewClick(doc)}
-                            className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition flex items-center gap-1 text-xs"
-                            title="Perpanjang dokumen tanpa membuat baru"
-                          >
-                            <ArrowPathIcon className="h-4 w-4" />
-                            Perpanjang
-                          </button>
-                          
-                          {/* Tombol Lihat History */}
-                          <button
-                            onClick={() => handleViewHistory(doc.id)}
-                            className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1 text-xs"
-                            title="Lihat history perpanjangan"
-                          >
-                            <InformationCircleIcon className="h-4 w-4" />
-                            History
-                          </button>
-                            {/* Tombol Tidak Diperpanjang */}
+{/* ✅ TOMBOL AKSI DI SAMPING KANAN */}
+<div className="flex flex-col gap-1.5 ml-3 flex-shrink-0 w-32">
+  {/* Tombol Perpanjang */}
+  <button
+    onClick={() => handleRenewClick(doc)}
+    className="w-full px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center justify-center gap-1.5 text-sm font-medium"
+    title="Perpanjang dokumen tanpa membuat baru"
+  >
+    <ArrowPathIcon className="h-4 w-4" />
+    <span>Perpanjang</span>
+  </button>
+  
+  {/* Tombol Lihat History */}
+  <button
+    onClick={() => handleViewHistory(doc.id)}
+    className="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center justify-center gap-1.5 text-sm font-medium"
+    title="Lihat history perpanjangan"
+  >
+    <InformationCircleIcon className="h-4 w-4" />
+    <span>History</span>
+  </button>
+  
+  {/* Tombol Tidak Diperpanjang */}
   <button
     onClick={() => markAsNotRenewed(doc.id)}
-    className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-1 text-xs"
+    className="w-full px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition flex items-center justify-center gap-1.5 text-sm font-medium"
     title="Tandai sebagai tidak diperpanjang (dokumen selesai)"
   >
     <ExclamationTriangleIcon className="h-4 w-4" />
-    Tidak Diperpanjang
+    <span>Tidak Diperpanjang</span>
   </button>
-                        </div>
+</div>
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Tampilkan pesan jika kategori tidak memiliki dokumen */}
+            {activeCategory !== 'all' && 
+             ((activeCategory === 'urgent' && stats.urgent.count === 0) ||
+              (activeCategory === 'warning' && stats.warning.count === 0) ||
+              (activeCategory === 'expired' && stats.expired.count === 0)) && (
+              <div className="p-6 text-center text-gray-500">
+                Tidak ada dokumen dalam kategori ini
               </div>
             )}
           </div>
@@ -570,7 +621,7 @@ export default function ExpiringStatsWidget() {
                       Memproses...
                     </>
                   ) : (
-                    '✅ Perpanjang Sekarang'
+                    'Perpanjang Sekarang'
                   )}
                 </button>
               </div>

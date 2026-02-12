@@ -4,13 +4,23 @@
    KOMINFO THEME (PALETTE)
    ========================= */
 :root{
-  --kominfo-teal: rgb(0,181,170);     /* 0, 181, 170 */
-  --kominfo-navy: rgb(0,51,108);      /* 0, 51, 108 */
-  --kominfo-orange: rgb(200,100,43);  /* 200, 100, 43 */
-  --kominfo-gray: rgb(163,163,163);   /* 163, 163, 163 */
-  --kominfo-white: rgb(255,255,255);  /* 255, 255, 255 */
+  --kominfo-teal: rgb(0,181,170);
+  --kominfo-navy: rgb(0,51,108);
+  --kominfo-orange: rgb(200,100,43);
+  --kominfo-gray: rgb(163,163,163);
+  --kominfo-white: rgb(255,255,255);
 
   --page-bg: #f6f8fb;
+
+  /* =========================
+     SIKERMA TYPOGRAPHY SYSTEM
+     ========================= */
+  --text-heading: #0b2f4f;   /* deep navy modern */
+  --text-title: #00336C;     /* brand navy */
+  --text-body: #163a5a;      /* softer navy */
+  --text-muted: #6b879d;     /* cool muted */
+  --text-link: #00b5aa;      /* teal accent */
+  --text-link-hover: #00336C;
 }
 
 * {
@@ -43,11 +53,48 @@ body {
     radial-gradient(900px 400px at 10% 0%, rgba(0,181,170,0.14), transparent 60%),
     radial-gradient(900px 400px at 90% 0%, rgba(0,51,108,0.10), transparent 60%),
     linear-gradient(180deg, rgba(0,181,170,0.08), rgba(0,51,108,0.05), var(--page-bg));
-  color: rgba(0,51,108,0.90);
+  color: var(--text-body);
 }
 
-a { color: var(--kominfo-teal); }
-a:hover { color: var(--kominfo-navy); }
+/* =========================
+   TYPOGRAPHY HIERARCHY
+   ========================= */
+
+h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-title);
+}
+
+h3 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-title);
+}
+
+p {
+  color: var(--text-body);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+
+a { 
+  color: var(--text-link);
+  font-weight: 500;
+}
+a:hover { 
+  color: var(--text-link-hover);
+}
 
 button, input, select, textarea { font: inherit; }
 
@@ -74,10 +121,10 @@ input:focus, select:focus, textarea:focus{
   padding: 0 1rem;
 }
 
-.text-gray-800 { color: rgba(0,51,108,0.92); }
-.text-gray-600 { color: rgba(0,51,108,0.70); }
-.text-gray-500 { color: rgba(163,163,163,0.95); }
-.text-gray-300 { color: rgba(163,163,163,0.55); }
+.text-gray-800 { color: var(--text-heading); }
+.text-gray-600 { color: var(--text-body); }
+.text-gray-500 { color: var(--text-muted); }
+.text-gray-300 { color: rgba(107,135,157,0.55); }
 
 .text-white { color: var(--kominfo-white); }
 

@@ -10,11 +10,10 @@ import './style.css';
 function App() {
   const [isLogin, setIsLogin] = useState(false);
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [userRole, setUserRole] = useState(null); // ✅ State untuk role
-  const [activeTab, setActiveTab] = useState("pemda"); // ✅ Tambahkan state activeTab untuk memanage tab aktif
+  const [userRole, setUserRole] = useState(null);
+  const [activeTab, setActiveTab] = useState("pemda");
 
   useEffect(() => {
-    // Cek login saat halaman dimuat
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
     
@@ -22,7 +21,7 @@ function App() {
       try {
         const user = JSON.parse(userData);
         setIsLogin(true);
-        setUserRole(user.role); // ✅ Ambil role dari localStorage
+        setUserRole(user.role);
       } catch (e) {
         console.error("Error parsing user data:", e);
         localStorage.removeItem("token");
@@ -31,7 +30,6 @@ function App() {
     }
   }, []);
 
-  // ✅ Handler login yang menerima role
   const handleLoginSuccess = (role) => {
     setIsLogin(true);
     setUserRole(role);
@@ -41,65 +39,26 @@ function App() {
     return <Login onSuccess={handleLoginSuccess} />;
   }
 
-  // ✅ Helper: Cek apakah admin
   const isAdmin = userRole === 'admin';
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header 
+        currentPage={currentPage} 
+        setCurrentPage={setCurrentPage} 
+        isAdmin={isAdmin} 
+      />
 
+      {/* Tambahkan padding-top yang lebih besar untuk jarak dari navbar */}
       <main className="container mx-auto px-4 py-6 mt-10">
-        {/* Navigasi dengan kondisi role */}
-        <div className="mb-6 flex flex-wrap gap-3 md:gap-4">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              currentPage === 'dashboard'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-            }`}
-          >
-            <i className="fas fa-tachometer-alt mr-2"></i>
-            Statistik
-          </button>
-          
-          <button
-            onClick={() => setCurrentPage('homepage')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              currentPage === 'homepage'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-            }`}
-          >
-            <i className="fas fa-file-contract mr-2"></i>
-            Dokumen Kerja Sama
-          </button>
-          
-          {/* ✅ HANYA TAMPIL UNTUK ADMIN */}
-          {isAdmin && (
-            <button
-              onClick={() => setCurrentPage('user-management')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                currentPage === 'user-management'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-              }`}
-            >
-              <i className="fas fa-users-cog mr-2"></i>
-              Manajemen User
-            </button>
-          )}
-        </div>
-
-        {/* Render halaman */}
         {currentPage === 'dashboard' ? (
           <Dashboard />
         ) : currentPage === 'user-management' ? (
           <UserManagement isAdmin={isAdmin} />
         ) : (
           <Homepage 
-            activeTab={activeTab} // ✅ Pass activeTab state to Homepage
-            onTabChange={setActiveTab} // ✅ Pass onTabChange handler to Homepage
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
           />
         )}
       </main>
