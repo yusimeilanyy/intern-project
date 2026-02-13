@@ -59,6 +59,11 @@ export default function NonPemdaContent() {
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
   const [loading, setLoading] = useState(true);
 
+  // ✅ STYLE ONLY (biar placeholder tidak mepet)
+  const filterSelectClass =
+    "border border-gray-300 rounded-md h-11 px-4 py-2.5 text-sm bg-white " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+
   const fetchMouData = async () => {
     try {
       setLoading(true);
@@ -120,10 +125,10 @@ export default function NonPemdaContent() {
       }
 
       await fetchMouData();
-      
+
       setShowForm(false);
       setEditingMou(null);
-      
+
     } catch (e) {
       console.error("❌ Error saving:", e);
       alert(`Gagal simpan: ${e.message}`);
@@ -137,9 +142,9 @@ export default function NonPemdaContent() {
       await apiFetch(`/mous/${id}`, { method: "DELETE" });
       console.log("✅ Delete berhasil");
       alert("✅ Dokumen berhasil dihapus!");
-      
+
       await fetchMouData();
-      
+
     } catch (e) {
       console.error("❌ Error deleting:", e);
       alert(`Gagal hapus: ${e.message}`);
@@ -148,11 +153,11 @@ export default function NonPemdaContent() {
 
   const filteredMoUs = Array.isArray(mous) ? mous.filter(mou => {
     if (statusFilter !== 'all' && mou.status !== statusFilter) return false;
-    
+
     if (documentTypeFilter !== 'all') {
       const docType = (mou.documentType || '').toLowerCase().replace(/\s+/g, '');
       const filterType = documentTypeFilter.toLowerCase().replace(/\s+/g, '');
-      
+
       if (filterType === 'mou' || filterType === 'memorandum') {
         return docType.includes('mou') || docType.includes('memorandum');
       }
@@ -161,7 +166,7 @@ export default function NonPemdaContent() {
       }
       return docType === filterType;
     }
-    
+
     return true;
   }) : [];
 
@@ -293,7 +298,7 @@ export default function NonPemdaContent() {
             <select
               value={documentTypeFilter}
               onChange={(e) => setDocumentTypeFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className={filterSelectClass}
             >
               {documentTypeOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -305,7 +310,7 @@ export default function NonPemdaContent() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className={filterSelectClass}
             >
               <option value="all">Semua Status</option>
               {statusOptions.map(status => (
@@ -324,12 +329,12 @@ export default function NonPemdaContent() {
           <div className="text-center py-12 flex flex-col items-center justify-center">
             <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
             <p className="text-gray-500">
-              {documentTypeFilter !== 'all' || statusFilter !== 'all' 
-                ? 'Tidak ada dokumen sesuai filter yang dipilih' 
+              {documentTypeFilter !== 'all' || statusFilter !== 'all'
+                ? 'Tidak ada dokumen sesuai filter yang dipilih'
                 : 'Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.'}
             </p>
             {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
-              <button 
+              <button
                 onClick={() => {
                   setDocumentTypeFilter('all');
                   setStatusFilter('all');
@@ -341,100 +346,124 @@ export default function NonPemdaContent() {
             )}
           </div>
         ) : (
-          
+
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perjanjian</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat <br /> Kerja Sama</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis <br /> Dokumen</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC BPSDMP</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PIC <br /> MITRA</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Mulai</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal <br /> Berakhir</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dokumen <br /> Final</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
-                  </tr>
-                </thead>
-              <tbody className="bg-white divide-y divide-gray-200 whitespace-normal">
-                {filteredMoUs.map(mou => (
-                  <tr key={mou.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                      <span className={`inline-block px-2 py-1 text-xs rounded-md font-medium ${
-                        mou.documentType === 'MoU' 
-                          ? 'bg-blue-100 text-blue-800' 
+            <table className="min-w-full text-sm border-separate border-spacing-y-4">
+              <thead className="border-b border-gray-300">
+                <tr className="text-[11px] text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Perjanjian</th>
+                  <th className="px-4 py-3 text-center font-semibold">Tingkat <br /> Kerja Sama</th>
+                  <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Dokumen</th>
+                  <th className="px-4 py-3 text-center font-semibold">PIC BPSDMP</th>
+                  <th className="px-4 py-3 text-center font-semibold">PIC <br /> MITRA</th>
+                  <th className="px-4 py-3 text-center font-semibold">Tanggal <br /> Mulai</th>
+                  <th className="px-4 py-3 text-center font-semibold">Tanggal <br /> Berakhir</th>
+                  <th className="px-4 py-3 text-center font-semibold">Status</th>
+                  <th className="px-4 py-3 text-center font-semibold">Catatan</th>
+                  <th className="px-6 py-3 text-center font-semibold">Dokumen <br /> Final</th>
+                  <th className="px-6 py-3 text-center font-semibold">Aksi</th>
+                </tr>
+              </thead>
+
+              <tbody className="text-[13px] text-gray-700">
+                {filteredMoUs.map((mou) => (
+                  <tr key={mou.id} className="hover:bg-gray-100 transition">
+
+                    <td className="px-4 py-4 text-center align-middle">
+                      <span
+                        className={`inline-block px-2 py-1 text-xs rounded-md font-medium ${mou.documentType === 'MoU'
+                          ? 'bg-blue-100 text-blue-800'
                           : mou.documentType === 'PKS'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                          }`}
+                      >
                         {mou.documentType || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.institutionalLevel || '-'}  
+
+                    <td className="px-4 py-4 text-center align-middle max-w-[180px] break-words">
+                      {mou.institutionalLevel || "-"}
                     </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.type || '-'}  
+
+                    <td className="px-4 py-4 text-center align-middle max-w-[160px] break-words">
+                      {mou.type || "-"}
                     </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                      {mou.bpsdmpPIC || '-'}
+
+                    <td className="px-4 py-4 text-center align-middle">
+                      {mou.bpsdmpPIC || "-"}
                     </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[120px]">
-                      {mou.partnerPIC || '-'}
+
+                    <td className="px-4 py-4 text-center align-middle">
+                      {mou.partnerPIC || "-"}
                       {mou.partnerPICPhone && (
-                        <div className="text-xs text-gray-500">{mou.partnerPICPhone}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {mou.partnerPICPhone}
+                        </div>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
-                      {mou.cooperationStartDate || '-'}
+
+                    <td className="px-4 py-4 text-center align-middle whitespace-nowrap">
+                      {mou.cooperationStartDate || "-"}
                     </td>
-                    <td className="px-4 py-2 text-center whitespace-nowrap min-w-[120px]">
-                      {mou.cooperationEndDate || '-'}
+
+                    <td className="px-4 py-4 text-center align-middle whitespace-nowrap">
+                      {mou.cooperationEndDate || "-"}
                     </td>
-                    <td className="px-4 py-2 text-center">
+
+                    <td className="px-4 py-4 text-center align-middle">
                       <span
-                        className={`inline-block px-2 py-1 text-xs rounded-md ${getStatusColor(mou.status)} max-w-[150px] break-words`}
-                        title={mou.status}
+                        className={`inline-block px-2 py-1 text-xs rounded-md ${getStatusColor(mou.status)}`}
                       >
                         {mou.status}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-center break-words max-w-[150px]">
-                      {mou.notes || '-'}
+
+                    <td className="px-4 py-4 text-center align-middle max-w-[180px] break-words">
+                      {mou.notes || "-"}
                     </td>
 
-                    <td className="px-4 py-2 text-center whitespace-nowrap">
-                      {mou.finalDocumentUrl ? (
-                        <button
-                          onClick={() => handlePreview(mou.finalDocumentUrl, mou.finalDocumentName || "document.pdf")}
-                          title="Lihat dokumen"
-                        >
-                          <img src={FinalDocIcon} className="h-4 w-4" alt="Final Doc Icon" />
-                        </button>
-                      ) : (
-                        '-'
-                      )}
+                    <td className="px-6 py-4 text-center align-middle min-w-[90px]">
+                      <div className="flex items-center justify-center h-full min-h-[40px]">
+                        {mou.finalDocumentUrl ? (
+                          <button
+                            onClick={() =>
+                              handlePreview(
+                                mou.finalDocumentUrl,
+                                mou.finalDocumentName || "document.pdf"
+                              )
+                            }
+                            className="flex items-center justify-center"
+                          >
+                            <img
+                              src={FinalDocIcon}
+                              className="h-4 w-4"
+                              alt="Final Doc"
+                            />
+                          </button>
+                        ) : (
+                          "-"
+                        )}
+                      </div>
                     </td>
 
-                    <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <div className="flex justify-center gap-3">
+                    <td className="px-6 py-4 text-center align-middle min-w-[100px]">
+                      <div className="flex justify-center gap-4">
                         <button
                           onClick={() => {
                             setEditingMou(mou);
                             setShowForm(true);
                           }}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="hover:opacity-70 transition"
                         >
-                          <img src={EditIcon} className="h-5 w-5" alt="Edit Icon" />
+                          <img src={EditIcon} className="h-4 w-4" alt="Edit" />
                         </button>
+
                         <button
                           onClick={() => handleDelete(mou.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="hover:opacity-70 transition"
                         >
-                          <img src={DeleteIcon} className="h-5 w-5" alt="Delete Icon" />
+                          <img src={DeleteIcon} className="h-4 w-4" alt="Delete" />
                         </button>
                       </div>
                     </td>
@@ -488,7 +517,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
   ];
 
   const [formData, setFormData] = useState({
-    documentType: '', 
+    documentType: '',
     institutionalLevel: '',
     type: '',
     customType: '',
@@ -513,7 +542,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
       const isCustom = initialType && !knownTypes.includes(initialType);
 
       setFormData({
-        documentType: initialData.documentType || '', 
+        documentType: initialData.documentType || '',
         institutionalLevel: initialData.institutionalLevel || '',
         type: isCustom ? 'Lainnya' : initialType,
         customType: isCustom ? initialType : '',
@@ -584,6 +613,26 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
     });
   };
 
+  // ✅ STYLE ONLY (placeholder nggak mepet + tombol file nggak nempel kiri)
+  const inputClass =
+    "mt-1 block w-full h-11 px-4 py-2.5 border border-gray-300 rounded-md bg-white " +
+    "placeholder:text-gray-400 placeholder:font-normal " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+  const selectClass =
+    "mt-1 block w-full h-11 px-4 py-2.5 border border-gray-300 rounded-md bg-white " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+  const textareaClass =
+    "mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-md bg-white " +
+    "placeholder:text-gray-400 placeholder:font-normal " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+  const fileClass =
+    "mt-1 block w-full rounded-md border border-gray-300 bg-white text-sm text-gray-700 " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition " +
+    "py-1 " +
+    "file:ml-3 file:my-1 file:mr-4 file:px-4 file:py-2 " +
+    "file:rounded-md file:border-0 file:text-sm file:font-semibold " +
+    "file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200";
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl overflow-y-auto max-h-[90vh]">
@@ -602,7 +651,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                 value={formData.documentType}
                 onChange={handleChange}
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={selectClass}
               >
                 <option value="">Pilih jenis perjanjian</option>
                 <option value="MoU">MoU (Memorandum of Understanding)</option>
@@ -619,7 +668,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   value={formData.institutionalLevel}
                   onChange={handleChange}
                   placeholder="Masukkan nama instansi"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={inputClass}
                 />
               </div>
 
@@ -629,7 +678,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={selectClass}
                 >
                   <option value="">Pilih jenis dokumen</option>
                   {knownTypes.map(t => (
@@ -645,7 +694,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                     value={formData.customType}
                     onChange={handleChange}
                     placeholder="Masukkan jenis MoU lainnya"
-                    className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className={inputClass}
                   />
                 )}
               </div>
@@ -659,7 +708,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                 value={formData.bpsdmpPIC}
                 onChange={handleChange}
                 placeholder="Masukkan nama PIC"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={inputClass}
               />
             </div>
 
@@ -672,7 +721,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   value={formData.officeDocNumber}
                   onChange={handleChange}
                   placeholder="Masukkan nomor dokumen"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={inputClass}
                 />
               </div>
               <div>
@@ -683,7 +732,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   value={formData.partnerDocNumber}
                   onChange={handleChange}
                   placeholder="Masukkan nomor dokumen"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -697,7 +746,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   value={formData.partnerPIC}
                   onChange={handleChange}
                   placeholder="Masukkan nama PIC"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={inputClass}
                 />
               </div>
               <div>
@@ -708,7 +757,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   value={formData.partnerPICPhone}
                   onChange={handleChange}
                   placeholder="Masukkan email atau nomor telepon"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -721,7 +770,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                 value={formData.owner}
                 onChange={handleChange}
                 placeholder="Masukkan nama pemilik"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={inputClass}
               />
             </div>
 
@@ -731,7 +780,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={selectClass}
               >
                 <option value="Baru">Baru</option>
                 <option value="Dalam Proses">Dalam Proses</option>
@@ -753,7 +802,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   name="cooperationStartDate"
                   value={formData.cooperationStartDate}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={inputClass}
                 />
               </div>
               <div>
@@ -763,7 +812,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                   name="cooperationEndDate"
                   value={formData.cooperationEndDate}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -800,11 +849,11 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                 onChange={handleChange}
                 placeholder="Tulis catatan tambahan (opsional)"
                 rows={4}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={textareaClass}
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex justify-end gap-2 pt-4">
               <button
                 type="button"
                 onClick={onCancel}
