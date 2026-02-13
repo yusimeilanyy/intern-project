@@ -227,8 +227,8 @@ export default function ExpiringStatsWidget() {
     );
   }
 
-  // Hitung total dokumen
-  const totalDocs = stats.urgent.count + stats.warning.count + stats.expired.count;
+  // ✅ PERBAIKAN: HANYA HITUNG URGENT + WARNING (HAPUS EXPIRED)
+  const totalDocs = stats.urgent.count + stats.warning.count;
 
   // ========================================
   // RENDER: TIDAK ADA DOKUMEN
@@ -273,7 +273,7 @@ export default function ExpiringStatsWidget() {
             </div>
           </div>
           
-          {/* Statistik Singkat */}
+          {/* ✅ PERBAIKAN: HANYA TAMPILKAN URGENT + PERINGATAN + TOTAL (HAPUS KADALUARSA) */}
           <div className="flex items-center gap-4">
             {/* URGENT */}
             <div 
@@ -299,19 +299,6 @@ export default function ExpiringStatsWidget() {
             >
               <div className="text-xs font-medium">PERINGATAN</div>
               <div className="text-2xl font-bold">{stats.warning.count}</div>
-            </div>
-            
-            {/* KADALUARSA */}
-            <div 
-              className={`text-right cursor-pointer ${
-                activeCategory === 'expired' 
-                  ? 'text-gray-800 font-bold' 
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-              onClick={() => setActiveCategory('expired')}
-            >
-              <div className="text-xs font-medium">KADALUARSA</div>
-              <div className="text-2xl font-bold">{stats.expired.count}</div>
             </div>
             
             <div className="w-px h-8 bg-red-200"></div>
@@ -436,98 +423,13 @@ export default function ExpiringStatsWidget() {
               </div>
             )}
 
-            {/* Bagian 3: Dokumen EXPIRED dengan tombol perpanjang ✅ */}
-            {activeCategory === 'expired' && stats.expired.count > 0 && (
-              <div className="p-4 bg-gray-50">
-                <div className="flex items-center gap-2 mb-3">
-                  <ExclamationTriangleIcon className="h-5 w-5 text-gray-600" />
-                  <h4 className="font-bold text-gray-800">📅 DOKUMEN KADALUARSA - PERLU KONFIRMASI</h4>
-                </div>
-                
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {stats.expired.documents.map(doc => (
-                    <div key={doc.id} className="bg-white p-4 rounded-lg border-l-4 border-gray-500 hover:bg-gray-100 transition">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          {/* Jenis Dokumen & Instansi */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                              doc.type === 'PKS' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {doc.type}
-                            </span>
-                            <span className="text-sm font-bold">{doc.institution}</span>
-                          </div>
-                          
-                          {/* Tanggal & Sisa Waktu */}
-                          <div className="text-sm text-gray-600 mt-2">
-                            <div className="flex items-center gap-1">
-                              <CalendarIcon className="h-4 w-4" />
-                              <span>Expired: {new Date(doc.endDate).toLocaleDateString('id-ID')}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-red-600 font-semibold mt-1">
-                              <ClockIcon className="h-4 w-4" />
-                              <span>Sudah {doc.daysExpired} hari kadaluarsa</span>
-                            </div>
-                          </div>
-                          
-                          {/* Status & Pesan */}
-                          <div className="mt-3 bg-gray-100 border border-gray-300 rounded p-3">
-                            <p className="text-xs text-gray-800 font-medium">
-                              ⚠️ <strong>MASA BERLAKU DOKUMEN TELAH BERAKHIR</strong><br/>
-                              Status: {doc.status}<br/>
-                              <span className="text-red-600 font-semibold">
-                                📢 Diperlukan Keputusan Tindak Lanjut <br />
-                                Segera lakukan konfirmasi terkait perpanjangan atau penetapan status akhir dokumen.
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                        
-{/* ✅ TOMBOL AKSI DI SAMPING KANAN */}
-<div className="flex flex-col gap-1.5 ml-3 flex-shrink-0 w-32">
-  {/* Tombol Perpanjang */}
-  <button
-    onClick={() => handleRenewClick(doc)}
-    className="w-full px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center justify-center gap-1.5 text-sm font-medium"
-    title="Perpanjang dokumen tanpa membuat baru"
-  >
-    <ArrowPathIcon className="h-4 w-4" />
-    <span>Perpanjang</span>
-  </button>
-  
-  {/* Tombol Lihat History */}
-  <button
-    onClick={() => handleViewHistory(doc.id)}
-    className="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center justify-center gap-1.5 text-sm font-medium"
-    title="Lihat history perpanjangan"
-  >
-    <InformationCircleIcon className="h-4 w-4" />
-    <span>History</span>
-  </button>
-  
-  {/* Tombol Tidak Diperpanjang */}
-  <button
-    onClick={() => markAsNotRenewed(doc.id)}
-    className="w-full px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition flex items-center justify-center gap-1.5 text-sm font-medium"
-    title="Tandai sebagai tidak diperpanjang (dokumen selesai)"
-  >
-    <ExclamationTriangleIcon className="h-4 w-4" />
-    <span>Tidak Diperpanjang</span>
-  </button>
-</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* ✅ PERBAIKAN: HAPUS SELURUH BAGIAN EXPIRED (KADALUARSA) */}
+            {/* Bagian 3: Dokumen EXPIRED - DIHAPUS SEPENUHNYA */}
 
             {/* Tampilkan pesan jika kategori tidak memiliki dokumen */}
             {activeCategory !== 'all' && 
              ((activeCategory === 'urgent' && stats.urgent.count === 0) ||
-              (activeCategory === 'warning' && stats.warning.count === 0) ||
-              (activeCategory === 'expired' && stats.expired.count === 0)) && (
+              (activeCategory === 'warning' && stats.warning.count === 0)) && (
               <div className="p-6 text-center text-gray-500">
                 Tidak ada dokumen dalam kategori ini
               </div>

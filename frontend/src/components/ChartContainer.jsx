@@ -210,75 +210,65 @@ const ChartContainer = ({ stats, documents = [] }) => {
     },
   };
 
-  return (
-    <div className="chart-container">
-      {/* BAR CHART */}
-      <div className="chart-row">
-        <div className="chart-box">
-          <h3 className="chart-title">
-            <i className="fas fa-chart-bar"></i> Perbandingan MoU & PKS
-          </h3>
-          <div className="chart-wrapper">
-            <Bar
-              data={comparisonData}
-              options={{
-                ...options,
-                scales: {
-                  x: { stacked: true },
-                  y: { stacked: true, beginAtZero: true },
-                },
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* JARAK ANTAR WIDGET */}
-      <div style={{ height: '24px' }}></div> 
-
-      {/* LINE CHART DENGAN FILTER TAHUN */}
-      <div className="chart-box full-width">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 className="chart-title">
-            <i className="fas fa-chart-line"></i> Tren Dokumen Baru (Bulanan)
-          </h3>
-          {/* ✅ DROPDOWN FILTER TAHUN */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#666' }}>Tahun :</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: '1px solid #ddd',
-                fontSize: '14px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                minWidth: '90px'
-              }}
-            >
-              {generateYearOptions().map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="chart-wrapper">
-          {/* ✅ TAMPILKAN PESAN JIKA TIDAK ADA DATA */}
-          {hasData ? (
-            <Line data={monthlyData} options={options} />
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <i className="fas fa-chart-line text-4xl mb-4"></i>
-              <p className="text-lg font-medium">Tidak ada data untuk tahun {selectedYear}</p>
-              <p className="text-sm mt-2">Dokumen baru akan muncul di sini</p>
-            </div>
-          )}
-        </div>
+return (
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {/* BAR CHART - Kiri */}
+    <div className="bg-white rounded-lg border p-6">
+      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <i className="fas fa-chart-bar text-blue-600"></i>
+        Perbandingan MoU & PKS
+      </h3>
+      <div className="h-80">
+        <Bar
+          data={comparisonData}
+          options={{
+            ...options,
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, beginAtZero: true },
+            },
+          }}
+        />
       </div>
     </div>
-  );
+
+    {/* LINE CHART - Kanan */}
+    <div className="bg-white rounded-lg border p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <i className="fas fa-chart-line text-green-600"></i>
+          Tren Dokumen Baru (Bulanan)
+        </h3>
+        {/* Filter Tahun */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Tahun:</span>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {generateYearOptions().map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      
+      <div className="h-80">
+        {/* Tampilkan pesan jika tidak ada data */}
+        {hasData ? (
+          <Line data={monthlyData} options={options} />
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-gray-500">
+            <i className="fas fa-chart-line text-4xl mb-3"></i>
+            <p className="text-base font-medium">Tidak ada data untuk tahun {selectedYear}</p>
+            <p className="text-sm mt-1">Dokumen baru akan muncul di sini</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+);
 };
 
 export default ChartContainer;

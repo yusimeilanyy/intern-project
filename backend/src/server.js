@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
-import usersRoutes from "./routes/users.js"; // ✅ Tambahkan
+import usersRoutes from "./routes/users.js"; 
 import mousRoutes from "./routes/mous.js";
 import { requireAuth } from "./middleware/auth.js";
 
@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/users", usersRoutes); // ✅ Tambahkan route users
+app.use("/api/users", usersRoutes); 
 app.use("/api/mous", mousRoutes);
 
 // Health check
