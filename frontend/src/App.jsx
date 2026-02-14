@@ -42,15 +42,16 @@ function App() {
   const isAdmin = userRole === 'admin';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    /* Gunakan flex-col dan min-h-screen di sini */
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
         isAdmin={isAdmin} 
       />
 
-      {/* Tambahkan padding-top yang lebih besar untuk jarak dari navbar */}
-      <main className="container mx-auto px-4 py-6 mt-10">
+      {/* flex-grow akan memastikan bagian main mengambil ruang yang tersedia, sehingga footer terdorong ke bawah */}
+      <main className="flex-grow container mx-auto px-4 py-6 mt-10">
         {currentPage === 'dashboard' ? (
           <Dashboard />
         ) : currentPage === 'user-management' ? (
@@ -62,7 +63,8 @@ function App() {
           />
         )}
       </main>
-
+      
+      {/* Footer sekarang otomatis di paling bawah */}
       <Footer />
     </div>
   );

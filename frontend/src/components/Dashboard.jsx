@@ -12,8 +12,6 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  
-  // ✅ TAMBAHKAN STATE & HANDLER DI SINI
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -29,7 +27,6 @@ const Dashboard = () => {
     }
   };
 
-  // ✅ TAMBAHKAN HANDLER DI SINI
   const handleRenewClick = (doc) => {
     setSelectedDoc(doc);
     setShowRenewModal(true);
@@ -47,28 +44,24 @@ const Dashboard = () => {
         setHistoryData(data);
         setShowHistoryModal(true);
       } else {
-        alert('Gagal mengambil history perpanjangan');
+        alert('Gagal mengambil riwayau perpanjangan');
       }
     } catch (error) {
       console.error('Error fetching history:', error);
-      alert('Terjadi kesalahan saat mengambil history');
+      alert('Terjadi kesalahan saat mengambil riwayat');
     }
   };
 
-  // ✅ PERBAIKAN: calculateStats dengan validasi tanggal
   const calculateStats = (docs) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     let activeMou = 0;
     let expiredMou = 0;
     let activePks = 0;
     let expiredPks = 0;
-
     docs.forEach(doc => {
       if (!doc.cooperationEndDate || doc.cooperationEndDate === '-') return;
       
-      // ✅ VALIDASI FORMAT TANGGAL
       const datePattern = /^\d{4}-\d{2}-\d{2}$/;
       if (!datePattern.test(doc.cooperationEndDate)) {
         console.warn("⚠️ Format tanggal tidak valid:", doc.cooperationEndDate, "dokumen:", doc.id);
@@ -114,7 +107,7 @@ const Dashboard = () => {
         
         console.log("📊 Fetching dashboard data...");
         
-        const response = await fetch(`/api/dashboard?t=${Date.now()}`, {
+        const response = await fetch(`/api/mous/dashboard?t=${Date.now()}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -157,7 +150,6 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ PERBAIKAN: Filter dengan validasi tanggal
   const filteredDocuments = documents.filter(doc => {
     if (documentTypeFilter !== 'all' && doc.documentType !== documentTypeFilter) {
       return false;
@@ -214,8 +206,11 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="dashboard-container">
-      <h1 className="dashboard-title">Ringkasan MoU & PKS</h1>
+    <div className="flex-grow container mx-auto px-4 py-6 mt-1">
+      <h2 className="text-xl font-bold text-[#006db0] mb-1">Overview Kerja Sama</h2>
+      <p className="text-gray-500 text-sm mb-6">
+         Pantau status, masa berlaku dan tindakan yang diperlukan untuk semua dokumen kerja sama
+      </p>
       
       <ExpiringStatsWidget />
 
@@ -232,7 +227,7 @@ const Dashboard = () => {
             value={stats.totalMou} 
             subtitle={`${stats.mou?.active || 0} aktif`} 
             icon="fa-file-contract" 
-            color="success" 
+            color="primary" 
           />
         </div>
         <div 
@@ -245,7 +240,7 @@ const Dashboard = () => {
             value={stats.totalPks} 
             subtitle={`${stats.pks?.active || 0} aktif`} 
             icon="fa-file-contract" 
-            color="success" 
+            color="primary" 
           />
         </div>
         <div 
@@ -278,63 +273,64 @@ const Dashboard = () => {
             value={stats.expiredCount} 
             subtitle={`${stats.expiredCount} dari ${stats.totalMou + stats.totalPks} dokumen`} 
             icon="fa-exclamation-circle" 
-            color="warning" 
+            color="danger" 
           />
         </div>
       </div>
 
-      {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
-        <div className="filter-section" style={{ 
-          marginBottom: '20px', 
-          padding: '15px', 
-          backgroundColor: '#e3f2fd', 
-          borderRadius: '8px',
-          borderLeft: '4px solid #2196f3',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontWeight: '600', color: '#1565c0', fontSize: '14px' }}>
-                🔍 
-                {documentTypeFilter !== 'all' && <strong> {documentTypeFilter}</strong>}
-                {statusFilter !== 'all' && <strong> {statusFilter}</strong>}
-              </span>
-              <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#546e7a' }}>
-                Menampilkan {filteredDocuments.length} dari {documents.length} dokumen
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setDocumentTypeFilter('all');
-                setStatusFilter('all');
-              }}
-              style={{
-                padding: '6px 16px',
-                borderRadius: '6px',
-                backgroundColor: '#1976d2',
-                color: 'white',
-                border: 'none',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#1565c0'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#1976d2'}
-            >
-              Reset Filter
-            </button>
-          </div>
-        </div>
-      )}
-
+{(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
+  <div className="filter-section" style={{ 
+    marginBottom: '10px', 
+    padding: '15px', 
+    backgroundColor: 'rgb(255, 255, 255)', 
+    borderRadius: '10px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div>
+        <span style={{ fontWeight: '500', color: '#0f1729', fontSize: '14px' }}>
+          🔍 
+          {documentTypeFilter !== 'all' && <strong> {documentTypeFilter}</strong>}
+          {statusFilter !== 'all' && <strong> {statusFilter}</strong>}
+        </span>
+        <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#0b2e4b' }}>
+          Menampilkan {filteredDocuments.length} dari {documents.length} dokumen
+        </p>
+      </div>
+      <button
+        onClick={() => {
+          setDocumentTypeFilter('all');
+          setStatusFilter('all');
+        }}
+        style={{
+          padding: '6px 16px',
+          borderRadius: '10px',
+          backgroundColor: '#07b8af',
+          color: 'white',
+          border: 'none',
+          fontWeight: '500',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          fontSize: 13
+        }}
+        onMouseEnter={(e) => e.target.style.backgroundColor = '#008a9a'}
+        onMouseLeave={(e) => e.target.style.backgroundColor = '#07b8af'}
+      >
+        Reset Filter
+      </button>
+    </div>
+  </div>
+)}
       
-      <DocumentTable 
-        documents={filteredDocuments} 
-        statusFilter={statusFilter === 'Kadaluarsa' ? 'Kadaluarsa' : 'all'} 
-        handleRenewClick={handleRenewClick}
-        handleViewHistory={handleViewHistory}
-        loading={false} 
-      />
+<DocumentTable
+  documents={filteredDocuments}
+  statusFilter={statusFilter === 'Kadaluarsa' ? 'Kadaluarsa' : 'all'}
+  loading={false}
+  onRefresh={() => {
+    window.location.reload();
+  }}
+/>
+
       
       <div style={{ height: '24px' }}></div> 
 
@@ -458,7 +454,7 @@ const Dashboard = () => {
               alignItems: 'center'
             }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>
-                History Perpanjangan
+                Riwayat Perpanjangan
               </h2>
               <button 
                 onClick={() => {
@@ -521,7 +517,6 @@ const Dashboard = () => {
   );
 };
 
-// ✅ TAMBAHKAN FUNGSI FORMAT TANGGAL DI LUAR COMPONENT
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   const date = new Date(dateString);

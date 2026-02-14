@@ -72,7 +72,35 @@ const isDocumentExpired = (doc) => {
 };
 
 /* =========================
-   MODAL UI (INLINE) - kecil & tidak terlalu bold
+   ✅ UPDATE KECIL: AMBIL STATUS PROSES DARI ROOT DULU (subStatus/statusAkhir)
+   ========================= */
+const getProcessStatus = (doc) => {
+  const rootStatus = doc?.status;
+
+  const s = (rootStatus || "").toString().trim().toLowerCase();
+  const isLifecycle = s === "aktif" || s === "kadaluarsa" || s === "active" || s === "expired" || s === "expiring";
+
+  if (rootStatus && !isLifecycle) return rootStatus;
+
+  const rootLastProcess = doc?.subStatus || doc?.statusAkhir;
+  if (rootLastProcess) return rootLastProcess;
+
+  if (doc?.payload) {
+    try {
+      const payload = typeof doc.payload === "string" ? JSON.parse(doc.payload) : doc.payload;
+      const payloadStatus = payload?.status;
+      const payloadLast = payload?.subStatus || payload?.statusAkhir;
+
+      if (payloadStatus) return payloadStatus;
+      if (payloadLast) return payloadLast;
+    } catch (e) {}
+  }
+
+  return isDocumentExpired(doc) ? "expired" : "active";
+};
+
+/* =========================
+   MODAL UI (INLINE)
    ========================= */
 const TEAL = "#07b8af";
 const TEAL_DARK = "#008a9a";
@@ -95,14 +123,14 @@ function ModalShell({ open, onClose, children }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 18,
+        padding: 14,
       }}
     >
       <div
         onMouseDown={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: 620,
+          maxWidth: 560,
           background: "#fff",
           borderRadius: 14,
           boxShadow: "0 18px 40px rgba(2,6,23,0.25)",
@@ -140,9 +168,7 @@ function ModalHeader({ iconNode, title, onClose }) {
         {iconNode}
       </div>
 
-      <div style={{ flex: 1, fontSize: 18, fontWeight: 600, color: NAVY }}>
-        {title}
-      </div>
+      <div style={{ flex: 1, fontSize: 18, fontWeight: 600, color: NAVY }}>{title}</div>
 
       <button
         onClick={onClose}
@@ -163,37 +189,101 @@ function ModalHeader({ iconNode, title, onClose }) {
   );
 }
 
-function HistoryModal({ open, onClose, doc, historyCount = 0 }) {
+/* ✅ HistoryModal: rapih + scroll nempel sisi modal */
+function HistoryModal({ open, onClose, doc, historyCount = 0, loading, historyData }) {
   const titleLine = useMemo(() => {
     const type = getDocumentType(doc || {});
-    const partner =
-      doc?.partnerName || doc?.institutionalLevel || doc?.institution || "N/A";
+    const partner = doc?.partnerName || doc?.institutionalLevel || doc?.institution || "N/A";
     return `${type} - ${partner}`;
   }, [doc]);
 
+  const historyList = historyData?.history || [];
+  const hasHistory = !loading && historyList.length > 0;
+
   return (
     <ModalShell open={open} onClose={onClose}>
-      <ModalHeader
-  iconNode={<i className="fas fa-history" style={{ color: TEAL }} />}
-  title="History Perpanjangan"
-  onClose={onClose}
-/>
+      <ModalHeader iconNode={<i className="fas fa-history" style={{ color: TEAL }} />} title="Riwayat Perpanjangan" onClose={onClose} />
 
-      <div style={{ padding: 18 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: NAVY, marginBottom: 14 }}>
-          {titleLine}
+      {/* ✅ BODY WRAPPER: bikin modal tinggi hanya kalau ada riwayat */}
+      <div
+        style={{
+          padding: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          ...(hasHistory ? { height: "72vh", minHeight: 0 } : {}),
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: NAVY, marginBottom: 10 }}>{titleLine}</div>
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, marginBottom: 4 }}>Jumlah Perpanjangan :</div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: NAVY }}>{loading ? "…" : `${historyCount}x`}</div>
         </div>
 
-        <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 6,}}>
-          Jumlah Perpanjangan:
-        </div>
-        <div style={{ fontSize: 34, fontWeight: 700, color: NAVY, marginBottom: 14 }}>
-          {historyCount}x
-        </div>
+        {/* ✅ EMPTY STATE: compact & bersih */}
+        {!hasHistory ? (
+          <div
+            style={{
+              border: "1px solid rgba(2,6,23,0.08)",
+              borderRadius: 12,
+              background: "#fff",
+              padding: 16,
+              textAlign: "center",
+              color: NAVY,
+              fontSize: 14,
+              lineHeight: 1.4,
+            }}
+          >
+            {loading ? "Memuat riwayat..." : "Belum ada riwayat perpanjangan"}
+          </div>
+        ) : (
+          /* ✅ LIST WRAP: scrollnya di container ini, full lebar modal */
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              overscrollBehavior: "contain",
+              paddingRight: 6, // ✅ kasih ruang supaya scrollbar gak nutup teks
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {historyList.map((h, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: 14,
+                    borderRadius: 12,
+                    border: "1px solid rgba(2,6,23,0.08)",
+                    background: "#fff",
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 800, color: NAVY, marginBottom: 10 }}>{formatDate(h?.date)}</div>
 
-        <div style={{ textAlign: "center", fontSize: 15, color: NAVY, marginBottom: 16 }}>
-          Belum ada history perpanjangan
-        </div>
+                  <div style={{ fontSize: 13, color: "#334155", display: "grid", gap: 6 }}>
+                    <div>
+                      <strong>Tanggal Berakhir Lama:</strong> {h?.oldEndDate || "-"}
+                    </div>
+                    <div>
+                      <strong>Tanggal Berakhir Baru:</strong> {h?.newEndDate || "-"}
+                    </div>
+                    <div>
+                      <strong>Status Sebelum:</strong> {h?.subStatusBefore || "-"}
+                    </div>
+                    <div>
+                      <strong>Status Sesudah:</strong> {h?.subStatusAfter || "-"}
+                    </div>
+                    <div>
+                      <strong>Catatan:</strong> {h?.notes || "-"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button
           onClick={onClose}
@@ -203,7 +293,7 @@ function HistoryModal({ open, onClose, doc, historyCount = 0 }) {
             background: TEAL,
             color: "#fff",
             fontSize: 15,
-            fontWeight: 600,
+            fontWeight: 700,
             padding: "12px 14px",
             borderRadius: 12,
             cursor: "pointer",
@@ -234,27 +324,14 @@ function RenewModal({ open, onClose, doc, onSubmit }) {
 
   return (
     <ModalShell open={open} onClose={onClose}>
-      <ModalHeader
-  iconNode={<i className="fas fa-sync-alt" style={{ color: "#11ba82" }} />}
-  title="Perpanjang Dokumen"
-  onClose={onClose}
-/>
+      <ModalHeader iconNode={<i className="fas fa-sync-alt" style={{ color: "#11ba82" }} />} title="Perpanjang Dokumen" onClose={onClose} />
 
       <div style={{ padding: 18 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 14 }}>
-          <span style={{ fontWeight: 700 }}>{type}</span> dengan{" "}
-          <span style={{ fontWeight: 700 }}>{partner}</span>
+          <span style={{ fontWeight: 700 }}>{type}</span> dengan <span style={{ fontWeight: 700 }}>{partner}</span>
         </div>
 
-        <label
-          style={{
-            display: "block",
-            fontSize: 13,
-            fontWeight: 600,
-            color: NAVY,
-            marginBottom: 8,
-          }}
-        >
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: NAVY, marginBottom: 8 }}>
           Tanggal Berakhir Baru <span style={{ color: "#ef4444" }}>*</span>
         </label>
 
@@ -274,18 +351,7 @@ function RenewModal({ open, onClose, doc, onSubmit }) {
               background: "#fff",
             }}
           />
-          <div
-            style={{
-              position: "absolute",
-              right: 14,
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: MUTED,
-              pointerEvents: "none",
-              fontSize: 16,
-            }}
-          >
-          </div>
+          <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: MUTED, pointerEvents: "none", fontSize: 16 }} />
         </div>
 
         <div
@@ -306,15 +372,7 @@ function RenewModal({ open, onClose, doc, onSubmit }) {
           </div>
         </div>
 
-        <label
-          style={{
-            display: "block",
-            fontSize: 13,
-            fontWeight: 600,
-            color: NAVY,
-            marginBottom: 8,
-          }}
-        >
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: NAVY, marginBottom: 8 }}>
           Catatan Perpanjangan (Opsional)
         </label>
 
@@ -380,19 +438,11 @@ function RenewModal({ open, onClose, doc, onSubmit }) {
 /* =========================
    DOCUMENT TABLE
    ========================= */
-const DocumentTable = ({
-  documents,
-  loading,
-  documentTypeFilter = "all",
-  statusFilter = "all",
-}) => {
+const DocumentTable = ({ documents, loading, documentTypeFilter = "all", statusFilter = "all", onRefresh }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const filteredDocuments = useMemo(
-    () => filterByDocumentType(documents || [], documentTypeFilter),
-    [documents, documentTypeFilter]
-  );
+  const filteredDocuments = useMemo(() => filterByDocumentType(documents || [], documentTypeFilter), [documents, documentTypeFilter]);
 
   useEffect(() => setCurrentPage(1), [documentTypeFilter, statusFilter, filteredDocuments]);
 
@@ -407,7 +457,6 @@ const DocumentTable = ({
     if (pageNumber >= 1 && pageNumber <= totalPages) setCurrentPage(pageNumber);
   };
 
-  // ===== Palette: ngikut screenshot =====
   const C = {
     text: "#0f172a",
     muted: "#64748b",
@@ -424,130 +473,71 @@ const DocumentTable = ({
   };
 
   const s = {
-    card: {
-      background: C.bg,
-      border: `1px solid ${C.border}`,
-      borderRadius: 14,
-      padding: 22,
-      boxShadow: "0 10px 28px rgba(2, 6, 23, 0.06)",
-    },
-    header: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingBottom: 12,
-      marginBottom: 14,
-      borderBottom: `1px solid ${C.softBorder}`,
-    },
+    card: { background: C.bg, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, boxShadow: "0 10px 28px rgba(2, 6, 23, 0.06)" },
+    header: { display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 12, marginBottom: 14, borderBottom: `1px solid ${C.softBorder}` },
     title: { fontSize: 18, fontWeight: 600, color: C.text, margin: 0 },
     total: { fontSize: 14, fontWeight: 500, color: C.muted },
-
     tableWrap: { overflowX: "auto" },
     table: { width: "100%", borderCollapse: "separate", borderSpacing: 0 },
-    th: {
-      padding: "14px 16px",
-      fontSize: 14,
-      fontWeight: 600,
-      color: "#0b2e4b",
-      background: C.headBg,
-      textAlign: "left",
-      borderBottom: `1px solid ${C.softBorder}`,
-      whiteSpace: "nowrap",
-    },
-    td: {
-      padding: "16px 16px",
-      fontSize: 14,
-      color: C.text,
-      borderBottom: `1px solid rgba(2, 6, 23, 0.04)`,
-      verticalAlign: "middle",
-    },
-
+    th: { padding: "14px 16px", fontSize: 14, fontWeight: 600, color: "#0b2e4b", background: C.headBg, textAlign: "left", borderBottom: `1px solid ${C.softBorder}`, whiteSpace: "nowrap" },
+    td: { padding: "16px 16px", fontSize: 14, color: C.text, borderBottom: `1px solid rgba(2, 6, 23, 0.04)`, verticalAlign: "middle" },
     docPill: (type) => {
       const key = (type || "").toLowerCase();
       if (key.includes("pks")) {
-        return {
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "8px 14px",
-          borderRadius: 999,
-          fontWeight: 600,
-          fontSize: 13,
-          background: C.pksBg,
-          color: C.pksText,
-          minWidth: 58,
-        };
+        return { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", borderRadius: 999, fontWeight: 600, fontSize: 13, background: C.pksBg, color: C.pksText, minWidth: 58 };
       }
-      return {
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "8px 14px",
-        borderRadius: 999,
-        fontWeight: 600,
-        fontSize: 13,
-        background: C.tealSoft,
-        color: "#007a73",
-        minWidth: 58,
-      };
+      return { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", borderRadius: 999, fontWeight: 600, fontSize: 13, background: C.tealSoft, color: "#007a73", minWidth: 58 };
     },
-
-    statusPill: {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "10px 14px",
-      borderRadius: 999,
-      fontWeight: 600,
-      fontSize: 13,
-      background: C.statusBg,
-      color: C.statusText,
-      whiteSpace: "nowrap",
-    },
-
-    pagination: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 12,
-      paddingTop: 12,
-      userSelect: "none",
-    },
-    navBtn: (disabled) => ({
-      border: "none",
-      background: "transparent",
-      fontSize: 13,
-      color: disabled ? "rgba(100, 116, 139, 0.35)" : "#64748b",
-      cursor: disabled ? "not-allowed" : "pointer",
-      padding: "4px 8px",
-      borderRadius: 10,
-      fontWeight: 500,
-    }),
+    statusPill: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "10px 14px", borderRadius: 999, fontWeight: 600, fontSize: 13, background: C.statusBg, color: C.statusText, whiteSpace: "nowrap" },
+    pagination: { display: "flex", alignItems: "center", justifyContent: "center", gap: 12, paddingTop: 12, userSelect: "none" },
+    navBtn: (disabled) => ({ border: "none", background: "transparent", fontSize: 13, color: disabled ? "rgba(100, 116, 139, 0.35)" : "#64748b", cursor: disabled ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: 10, fontWeight: 500 }),
     pageRow: { display: "flex", alignItems: "center", gap: 12 },
-    pageBtn: (active) => ({
-      border: "none",
-      background: active ? C.teal : "transparent",
-      color: active ? "#fff" : "#94a3b8",
-      fontWeight: 600,
-      fontSize: 14,
-      width: 28,
-      height: 28,
-      borderRadius: 10,
-      cursor: "pointer",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      boxShadow: active ? "0 8px 16px rgba(7, 184, 175, 0.22)" : "none",
-    }),
+    pageBtn: (active) => ({ border: "none", background: active ? C.teal : "transparent", color: active ? "#fff" : "#94a3b8", fontWeight: 600, fontSize: 14, width: 28, height: 28, borderRadius: 10, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: active ? "0 8px 16px rgba(7, 184, 175, 0.22)" : "none" }),
   };
 
   const [hoverIdx, setHoverIdx] = useState(null);
+  const [modal, setModal] = useState({ type: null, doc: null });
 
-  // ✅ modal internal (satu pintu, biar modal lama tidak ikut)
-  const [modal, setModal] = useState({ type: null, doc: null }); // null | renew | history
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyData, setHistoryData] = useState(null);
+
   const openRenewModal = (doc) => setModal({ type: "renew", doc });
-  const openHistoryModal = (doc) => setModal({ type: "history", doc });
-  const closeModal = () => setModal({ type: null, doc: null });
+
+  const openHistoryModal = async (doc) => {
+    setModal({ type: "history", doc });
+    setHistoryData(null);
+    setHistoryLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`/api/renewal/${doc?.id}/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("History API error:", data);
+        setHistoryData(null);
+        alert(data?.message || "Gagal mengambil riwayat perpanjangan");
+      } else {
+        setHistoryData(data);
+      }
+    } catch (e) {
+      console.error("❌ Error fetch history:", e);
+      setHistoryData(null);
+      alert("Terjadi kesalahan saat mengambil riwayat perpanjangan");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setModal({ type: null, doc: null });
+    setHistoryData(null);
+    setHistoryLoading(false);
+  };
 
   if (loading) {
     return <div style={{ textAlign: "center", padding: 30, color: C.muted }}>Memuat data...</div>;
@@ -587,9 +577,8 @@ const DocumentTable = ({
 
             <tbody>
               {currentDocuments.map((doc, idx) => {
-                const badge = getStatusBadge(
-                  doc.status || (isDocumentExpired(doc) ? "expired" : "active")
-                );
+                const processStatus = getProcessStatus(doc);
+                const badge = getStatusBadge(processStatus);
                 const docType = getDocumentType(doc);
 
                 return (
@@ -597,9 +586,7 @@ const DocumentTable = ({
                     key={doc.id || idx}
                     onMouseEnter={() => setHoverIdx(idx)}
                     onMouseLeave={() => setHoverIdx(null)}
-                    style={{
-                      background: hoverIdx === idx ? "rgba(2, 6, 23, 0.02)" : "transparent",
-                    }}
+                    style={{ background: hoverIdx === idx ? "#ebfaf9" : "transparent" }}
                   >
                     <td style={s.td}>{indexOfFirstItem + idx + 1}</td>
 
@@ -673,7 +660,7 @@ const DocumentTable = ({
                             }}
                           >
                             <i className="fas fa-history" />
-                            History
+                            Riwayat
                           </button>
                         </div>
                       </td>
@@ -687,11 +674,7 @@ const DocumentTable = ({
 
         {totalPages > 1 && (
           <div style={s.pagination}>
-            <button
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-              style={s.navBtn(currentPage === 1)}
-            >
+            <button onClick={handlePreviousPage} disabled={currentPage === 1} style={s.navBtn(currentPage === 1)}>
               ‹ Sebelumnya
             </button>
 
@@ -706,33 +689,54 @@ const DocumentTable = ({
               })}
             </div>
 
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              style={s.navBtn(currentPage === totalPages)}
-            >
+            <button onClick={handleNextPage} disabled={currentPage === totalPages} style={s.navBtn(currentPage === totalPages)}>
               Berikutnya ›
             </button>
           </div>
         )}
       </div>
 
-      {/* ========= MODALS INTERNAL ========= */}
       <HistoryModal
         open={modal.type === "history"}
         onClose={closeModal}
         doc={modal.doc}
-        historyCount={0}
+        historyCount={historyData?.renewalCount || 0}
+        loading={historyLoading}
+        historyData={historyData}
       />
 
       <RenewModal
         open={modal.type === "renew"}
         onClose={closeModal}
         doc={modal.doc}
-        onSubmit={({ doc, newEndDate, note }) => {
-          // ✅ TODO: ganti ini dengan API kamu
-          console.log("RENEW SUBMIT:", { id: doc?.id, newEndDate, note });
-          closeModal();
+        onSubmit={async ({ doc, newEndDate, note }) => {
+          try {
+            const token = localStorage.getItem("token");
+
+            const res = await fetch(`/api/renewal/${doc?.id}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ newEndDate, notes: note }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+              alert(data?.message || "Gagal memperpanjang dokumen");
+              return;
+            }
+
+            alert("✅ Berhasil memperpanjang dokumen");
+            closeModal();
+
+            if (typeof onRefresh === "function") onRefresh();
+          } catch (e) {
+            console.error("❌ Error renew:", e);
+            alert("Terjadi kesalahan saat memperpanjang dokumen");
+          }
         }}
       />
     </>

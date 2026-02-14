@@ -308,18 +308,18 @@ export default function PemdaContent() {
   };
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-3 pt-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 mt-2">Instansi Pemerintah Daerah</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h3 className="text-2xl font-bold text-gray-800 mt-2">Instansi Pemerintah Daerah</h3>
+          <p className="text-sm text-gray-500 mb-1">
             Pengelolaan dokumen kerja sama dengan Pemerintah Daerah beserta perangkat daerah
           </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-gray-800"
+          className="bg-[#00b5a9] text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-[#008a99]"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-1 0H6" />

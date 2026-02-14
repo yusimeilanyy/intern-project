@@ -268,7 +268,7 @@ export default function ExpiringStatsWidget() {
             <div>
               <h3 className="font-bold text-lg text-red-800">Dokumen Perlu Perhatian</h3>
               <p className="text-sm text-red-600 mt-1">
-                {expanded ? 'Klik untuk sembunyikan' : 'Klik untuk lihat detail'}
+                {expanded ? 'Klik untuk sembunyikan' : 'Klik untuk selengkapnya'}
               </p>
             </div>
           </div>
@@ -443,7 +443,7 @@ export default function ExpiringStatsWidget() {
             <div className="flex items-center justify-between text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <BellIcon className="h-4 w-4" />
-                <span>Email reminder otomatis dikirim 14 hari & 7 hari sebelum expired</span>
+                <span>Email reminder otomatis dikirim 14 hari & 7 hari sebelum dokumen kadaluarsa</span>
               </div>
               <button 
                 onClick={() => setExpanded(false)}
@@ -538,7 +538,7 @@ export default function ExpiringStatsWidget() {
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
               <InformationCircleIcon className="h-6 w-6 text-blue-600" />
-              History Perpanjangan
+              Riwayat Perpanjangan
             </h3>
             <p className="text-gray-600 mb-4">
               <strong>{historyData.type}</strong> - <strong>{historyData.institution}</strong>

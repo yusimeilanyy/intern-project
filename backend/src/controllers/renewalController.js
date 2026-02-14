@@ -42,21 +42,42 @@ export const renewExpiredDocument = async (req, res) => {
       });
     }
 
+    // ✅ AMBIL STATUS AKHIR SEBELUM KADALUARSA
+const preservedSubStatus =
+  oldPayload.lastActiveSubStatus ||
+  oldPayload.subStatus ||
+  oldPayload.statusAkhir ||
+  oldPayload.status ||        // kalau status proses ada, pakai ini
+  "Baru";                     // fallback paling aman
+
     // Hitung durasi perpanjangan (dalam tahun)
     const currentStartDate = new Date(oldPayload.cooperationStartDate);
     const originalDuration = (currentEndDate - currentStartDate) / (1000 * 60 * 60 * 24 * 365);
     const newDuration = (endDate - currentStartDate) / (1000 * 60 * 60 * 24 * 365);
     const extensionYears = Math.round(newDuration - originalDuration);
 
-    // Update payload dengan tanggal baru
+    // ✅ UPDATE: KEMBALIKAN STATUS AKHIR KE NILAI SEBELUM KADALUARSA
     const newPayload = {
       ...oldPayload,
-      cooperationEndDate: newEndDate, // ✅ Update tanggal expired
-      status: 'Aktif', // ✅ Ubah status menjadi Aktif
-      renewalNotes: notes || `Diperpanjang otomatis oleh sistem pada ${new Date().toLocaleDateString('id-ID')}`,
+      cooperationEndDate: newEndDate,
+      status: preservedSubStatus, 
+      subStatus: preservedSubStatus,        // ✅ KEMBALIKAN STATUS AKHIR
+      statusAkhir: preservedSubStatus,      // ✅ KEMBALIKAN STATUS AKHIR
+      renewalNotes: notes || `Diperpanjang dengan status akhir: ${preservedSubStatus} pada ${new Date().toLocaleDateString('id-ID')}`,
       renewedAt: new Date().toISOString(),
       renewalCount: (parseInt(oldPayload.renewalCount) || 0) + 1,
-      extensionYears: extensionYears
+      extensionYears: extensionYears,
+      renewalHistory: [
+        ...(oldPayload.renewalHistory || []),
+        {
+          date: new Date().toISOString(),
+          oldEndDate: oldPayload.cooperationEndDate,
+          newEndDate: newEndDate,
+          subStatusBefore: oldPayload.subStatus || oldPayload.statusAkhir,
+          subStatusAfter: preservedSubStatus,
+          notes: notes || 'Diperpanjang otomatis'
+        }
+      ]
     };
 
     // Update dokumen di database
@@ -66,13 +87,13 @@ export const renewExpiredDocument = async (req, res) => {
     );
 
     console.log(`✅ Dokumen ID ${id} berhasil diperpanjang`);
+    console.log(`   - Status akhir dikembalikan ke: ${preservedSubStatus}`);
     console.log(`   - Tanggal lama: ${oldPayload.cooperationEndDate}`);
     console.log(`   - Tanggal baru: ${newEndDate}`);
-    console.log(`   - Perpanjangan: ${extensionYears} tahun`);
 
     // Kirim response
     res.json({
-      message: "Dokumen berhasil diperpanjang",
+      message: "Dokumen berhasil diperpanjang dengan status akhir dipertahankan",
       document: {
         id: parseInt(id),
         type: newPayload.documentType || (rows[0].category === 'pks' ? 'PKS' : 'MoU'),
@@ -81,7 +102,9 @@ export const renewExpiredDocument = async (req, res) => {
         newEndDate: newEndDate,
         renewalCount: newPayload.renewalCount,
         extensionYears: extensionYears,
-        status: 'Aktif'
+        status: 'Aktif',
+        subStatus: preservedSubStatus,
+        statusAkhir: preservedSubStatus
       }
     });
     
@@ -152,10 +175,11 @@ export const markAsNotRenewed = async (req, res) => {
       });
     }
 
-    // Update status menjadi "Selesai" (atau "Tidak Diperpanjang")
+    // ✅ SIMPAN STATUS AKHIR SEBELUM DIUBAH
     const updatedPayload = {
       ...payload,
-      status: 'Selesai', // ✅ Ini kunci: ubah status agar tidak muncul di widget
+      lastActiveSubStatus: payload.subStatus || payload.statusAkhir || 'Aktif', // ✅ SIMPAN STATUS AKHIR
+      status: 'Selesai',
       renewalStatus: 'not_renewed',
       markedAsNotRenewedAt: new Date().toISOString()
     };
