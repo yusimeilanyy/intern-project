@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bar, Line } from 'react-chartjs-2';
+import React, { useMemo, useState } from "react";
+import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +11,7 @@ import {
   Tooltip,
   Legend,
   Filler,
-} from 'chart.js';
+} from "chart.js";
 
 ChartJS.register(
   CategoryScale,
@@ -22,253 +22,414 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler,
+  Filler
 );
 
 const ChartContainer = ({ stats, documents = [] }) => {
-  // ✅ STATE UNTUK FILTER TAHUN
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   /* =========================
-     GENERATE LIST TAHUN DARI DATA
+     THEME (ORANGE + TEAL) - ENHANCED
      ========================= */
-  const generateYearOptions = () => {
+  const colors = {
+    navy: "#c7632a",
+    navySoft: "rgba(199, 99, 42, 0.12)",
+    teal: "#07b8af",
+    tealSoft: "rgba(7, 184, 175, 0.15)",
+    tealDark: "#008a9a",
+    orange: "#FF6B35",
+    orangeSoft: "rgba(255, 107, 53, 0.15)",
+    orangeDark: "#D35400",
+    text: "#0F172A",
+    muted: "#64748B",
+    grid: "rgba(2, 6, 23, 0.06)",
+    cardBorder: "rgba(2, 6, 23, 0.08)",
+    cardShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
+  };
+
+  /* =========================
+     YEAR OPTIONS
+     ========================= */
+  const yearOptions = useMemo(() => {
     const years = new Set();
-    
-    // Ambil tahun dari dokumen yang ada (minimal 2020)
-    documents.forEach(doc => {
+    documents.forEach((doc) => {
       if (doc.cooperationStartDate) {
-        const year = doc.cooperationStartDate.split('-')[0];
-        const yearNum = parseInt(year);
-        if (!isNaN(yearNum) && yearNum >= 2020) {
-          years.add(yearNum);
-        }
+        const yearNum = parseInt(doc.cooperationStartDate.split("-")[0], 10);
+        if (!isNaN(yearNum) && yearNum >= 2020) years.add(yearNum);
       }
     });
-    
-    // Tambahkan tahun sekarang dan 10 tahun ke depan
     const currentYear = new Date().getFullYear();
-    for (let i = 0; i <= 10; i++) {
-      years.add(currentYear + i);
-    }
-    
+    for (let i = 0; i <= 5; i++) years.add(currentYear + i);
     return Array.from(years).sort((a, b) => b - a);
-  };
+  }, [documents]);
 
   /* =========================
-     BAR – MOU vs PKS (HIDUP)
+     BAR – MOU vs PKS - ENHANCED
      ========================= */
-  const comparisonData = {
-    labels: ['MoU', 'PKS'],
-    datasets: [
-      {
-        label: 'Aktif',
-        data: [stats.mou?.active || 0, stats.pks?.active || 0],
-        backgroundColor: '#00B5AA',
-        hoverBackgroundColor: '#00E0CF',
-        borderRadius: 6,
-      },
-      {
-        label: 'Kadaluarsa',
-        data: [stats.mou?.expired || 0, stats.pks?.expired || 0],
-        backgroundColor: '#FF6B35',
-        hoverBackgroundColor: '#FF8A5B',
-        borderRadius: 6,
-      },
-    ],
-  };
+  const comparisonData = useMemo(
+    () => ({
+      labels: ["MoU", "PKS"],
+      datasets: [
+        {
+          label: "Aktif",
+          data: [stats.mou?.active || 0, stats.pks?.active || 0],
+          backgroundColor: colors.teal,
+          borderColor: "transparent",
+          borderWidth: 0,
+          borderRadius: 8,
+          maxBarThickness: 50,
+          categoryPercentage: 0.85,
+          barPercentage: 0.95,
+          hoverBackgroundColor: colors.tealDark,
+        },
+        {
+          label: "Kadaluarsa",
+          data: [stats.mou?.expired || 0, stats.pks?.expired || 0],
+          backgroundColor: colors.orange,
+          borderColor: "transparent",
+          borderWidth: 0,
+          borderRadius: 8,
+          maxBarThickness: 50,
+          categoryPercentage: 0.85,
+          barPercentage: 0.95,
+          hoverBackgroundColor: colors.orangeDark,
+        },
+      ],
+    }),
+    [stats, colors]
+  );
 
   /* =========================
-     LINE – TREND (HITUNG DARI DOKUMEN)
+     LINE – MONTHLY TREND - ENHANCED
      ========================= */
-  const monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const monthlyLabels = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
 
-  // ✅ HITUNG DARI DOKUMEN YANG SUDAH ADA (FILTER PER TAHUN)
-  const calculateMonthlyTrend = () => {
+  const { mou, pks } = useMemo(() => {
     const monthlyCount = {
       mou: Array(12).fill(0),
-      pks: Array(12).fill(0)
+      pks: Array(12).fill(0),
     };
 
-    documents.forEach(doc => {
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+    documents.forEach((doc) => {
       const date = doc.cooperationStartDate;
-      if (!date) return;
-      
-      // ✅ Validasi format tanggal YYYY-MM-DD
-      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-      if (!datePattern.test(date)) {
-        console.warn("⚠️ Format tanggal tidak valid:", date);
-        return;
-      }
-      
-      const [year, month] = date.split('-');
-      
-      // Filter berdasarkan tahun yang dipilih
-      if (parseInt(year) !== selectedYear) return;
-      
-      const monthIndex = parseInt(month) - 1;
-      
-      if (monthIndex >= 0 && monthIndex < 12) {
-        if (doc.documentType === 'MoU') {
-          monthlyCount.mou[monthIndex]++;
-        } else if (doc.documentType === 'PKS') {
-          monthlyCount.pks[monthIndex]++;
-        }
-      }
+      if (!date || !datePattern.test(date)) return;
+
+      const [year, month] = date.split("-");
+      if (parseInt(year, 10) !== selectedYear) return;
+
+      const monthIndex = parseInt(month, 10) - 1;
+      if (monthIndex < 0 || monthIndex > 11) return;
+
+      if (doc.documentType === "MoU") monthlyCount.mou[monthIndex] += 1;
+      if (doc.documentType === "PKS") monthlyCount.pks[monthIndex] += 1;
     });
 
     return monthlyCount;
-  };
+  }, [documents, selectedYear]);
 
-  // ✅ HITUNG TREN DARI DOKUMEN
-  const { mou, pks } = calculateMonthlyTrend();
+  const hasData = useMemo(
+    () => mou.some((v) => v > 0) || pks.some((v) => v > 0),
+    [mou, pks]
+  );
 
-  // ✅ CEK APAKAH ADA DATA
-  const hasData = mou.some(val => val > 0) || pks.some(val => val > 0);
-
-  const monthlyData = {
-    labels: monthlyLabels,
-    datasets: [
-      {
-        label: 'MoU Baru',
-        data: mou,
-        borderColor: '#00336C',
-        borderWidth: 2,
-        backgroundColor: 'rgba(0, 51, 108, 0.15)',
-        tension: 0.45,
-        fill: true,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        pointBackgroundColor: '#00336C',
-      },
-      {
-        label: 'PKS Baru',
-        data: pks,
-        borderColor: '#00B5AA',
-        borderWidth: 2,
-        backgroundColor: 'rgba(0, 181, 170, 0.18)',
-        tension: 0.45,
-        fill: true,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        pointBackgroundColor: '#00B5AA',
-      },
-    ],
-  };
+  const monthlyData = useMemo(
+    () => ({
+      labels: monthlyLabels,
+      datasets: [
+        {
+          label: "MoU Baru",
+          data: mou,
+          borderColor: colors.teal,
+          backgroundColor: colors.tealSoft,
+          borderWidth: 2.5,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: colors.teal,
+          // ✅ jangan ada border putih, biar sama seperti legend bulat solid
+          pointBorderColor: "transparent",
+          pointBorderWidth: 0,
+          pointHoverBackgroundColor: colors.tealDark,
+          pointHoverBorderColor: "transparent",
+        },
+        {
+          label: "PKS Baru",
+          data: pks,
+          borderColor: colors.orange,
+          backgroundColor: colors.orangeSoft,
+          borderWidth: 2.5,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: colors.orange,
+          pointBorderColor: "transparent",
+          pointBorderWidth: 0,
+          pointHoverBackgroundColor: colors.orangeDark,
+          pointHoverBorderColor: "transparent",
+        },
+      ],
+    }),
+    [mou, pks, colors]
+  );
 
   /* =========================
-     OPTIONS – INTERAKTIF
+     OPTIONS – ENHANCED VISUAL
      ========================= */
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          color: '#00336C',
-          font: { size: 13, weight: 600 },
-          padding: 20,
-          usePointStyle: true,
+  const baseOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 12, bottom: 6, left: 12 } },
+      interaction: {
+        mode: "index",
+        intersect: false,
+        axis: "x",
+      },
+      plugins: {
+        legend: {
+          position: "bottom",
+          align: "center",
+          maxHeight: 36,
+          labels: {
+            color: "#64748b",
+            boxWidth: 10,
+            boxHeight: 10,
+            usePointStyle: true,
+            pointStyle: "circle",
+            padding: 12,
+            font: { size: 13, weight: "500", family: "inherit" },
+            generateLabels: (chart) => {
+              const original =
+                ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
+              return original.map((l) => ({
+                ...l,
+                pointStyle: "circle",
+                lineWidth: 0,
+                strokeStyle: "transparent",
+              }));
+            },
+          },
+        },
+        tooltip: {
+          backgroundColor: "#fff",
+          titleColor: colors.text,
+          titleFont: { weight: "600" },
+          bodyColor: colors.muted,
+          padding: 12,
+          borderColor: "rgba(0, 0, 0, 0.1)",
+          borderWidth: 1,
+          cornerRadius: 8,
+          displayColors: true,
+          bodyFont: { size: 11 },
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+          },
         },
       },
-      tooltip: {
-        backgroundColor: '#00336C',
-        titleColor: '#FFFFFF',
-        bodyColor: '#FFFFFF',
-        padding: 12,
-        borderColor: '#00B5AA',
-        borderWidth: 1,
-        cornerRadius: 8,
-      },
-    },
-    scales: {
-      x: {
-        ticks: {
-          color: '#475569',
-          font: { size: 12 },
+      scales: {
+        x: {
+          ticks: {
+            color: colors.muted,
+            font: { size: 11, weight: "500" },
+            maxRotation: 0,
+            minRotation: 0,
+          },
+          grid: {
+            display: false,
+            drawBorder: false,
+          },
+          border: { display: false },
         },
-        grid: {
-          display: false,
-        },
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: '#475569',
-          precision: 0,
-          font: { size: 12 },
-        },
-        grid: {
-          color: 'rgba(0,0,0,0.06)',
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: colors.muted,
+            precision: 0,
+            font: { size: 11, weight: "500" },
+            stepSize: 1,
+          },
+          grid: {
+            color: colors.grid,
+            drawBorder: false,
+          },
+          border: { display: false },
         },
       },
-    },
+      animation: {
+        duration: 800,
+        easing: "easeOutQuart",
+      },
+    }),
+    [colors]
+  );
+
+  const cardClass = "bg-white rounded-xl border";
+  const cardBorderStyle = {
+    borderColor: colors.cardBorder,
+    boxShadow: colors.cardShadow,
+    transition: "all 0.3s ease",
   };
 
-return (
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {/* BAR CHART - Kiri */}
-    <div className="bg-white rounded-lg border p-6">
-      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <i className="fas fa-chart-bar text-blue-600"></i>
-        Perbandingan MoU & PKS
-      </h3>
-      <div className="h-80">
-        <Bar
-          data={comparisonData}
-          options={{
-            ...options,
-            scales: {
-              x: { stacked: true },
-              y: { stacked: true, beginAtZero: true },
-            },
-          }}
-        />
-      </div>
-    </div>
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* BAR CARD - header kiri */}
+      <div
+        className={cardClass}
+        style={cardBorderStyle}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.08)")
+        }
+        onMouseLeave={(e) => (e.currentTarget.style.boxShadow = colors.cardShadow)}
+      >
+<div
+  className="pt-5 pb-3 mt-3"
+  style={{ paddingLeft: 28, paddingRight: 28 }}
+>
+          {/* ✅ judul & subjudul pojok kiri */}
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold" style={{ color: colors.text }}>
+                Perbandingan MoU & PKS
+              </h3>
+              <p className="stat-subtitle mt-1" style={{ color: colors.muted }}>
+                Status aktif vs kadaluarsa
+              </p>
+            </div>
+            <div />
+          </div>
+        </div>
 
-    {/* LINE CHART - Kanan */}
-    <div className="bg-white rounded-lg border p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-          <i className="fas fa-chart-line text-green-600"></i>
-          Tren Dokumen Baru (Bulanan)
-        </h3>
-        {/* Filter Tahun */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Tahun:</span>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {generateYearOptions().map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+        <div className="px-4 pb-4 pt-1 mt-3">
+          <div className="h-56">
+            <Bar
+              data={comparisonData}
+              options={{
+                ...baseOptions,
+                scales: {
+                  x: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: {
+                      color: colors.muted,
+                      font: { size: 11, weight: "500" },
+                      maxRotation: 0,
+                      minRotation: 0,
+                    },
+                    border: { display: false },
+                  },
+                  y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: {
+                      color: colors.muted,
+                      precision: 0,
+                      font: { size: 11, weight: "500" },
+                      stepSize: 1,
+                    },
+                    grid: { color: colors.grid },
+                    border: { display: false },
+                  },
+                },
+              }}
+            />
+          </div>
         </div>
       </div>
-      
-      <div className="h-80">
-        {/* Tampilkan pesan jika tidak ada data */}
-        {hasData ? (
-          <Line data={monthlyData} options={options} />
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center text-gray-500">
-            <i className="fas fa-chart-line text-4xl mb-3"></i>
-            <p className="text-base font-medium">Tidak ada data untuk tahun {selectedYear}</p>
-            <p className="text-sm mt-1">Dokumen baru akan muncul di sini</p>
-          </div>
-        )}
-      </div>
+
+      {/* LINE CARD - header kiri + Tahun rapi */}
+      <div
+        className={cardClass}
+        style={cardBorderStyle}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.08)")
+        }
+        onMouseLeave={(e) => (e.currentTarget.style.boxShadow = colors.cardShadow)}
+      >
+<div
+  className="pt-5 pb-3 mt-3"
+  style={{ paddingLeft: 28, paddingRight: 28 }}
+>
+  <div className="flex items-center justify-between gap-4">
+    <div className="text-left">
+      <h3 className="text-lg font-semibold" style={{ color: colors.text }}>
+        Tren Dokumen Baru (Bulanan)
+      </h3>
+      <p className="stat-subtitle mt-1" style={{ color: colors.muted }}>
+        Berdasarkan tanggal mulai kerja sama
+      </p>
+    </div>
+
+    {/* Tahun: kasih margin kanan biar tidak nempel tepi */}
+    <div className="flex items-center gap-2" style={{ marginRight: 8 }}>
+      <span className="text-xs" style={{ color: colors.muted }}>
+        Tahun
+      </span>
+      <select
+        value={selectedYear}
+        onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+        className="px-3 py-1.5 border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-300 transition-all"
+        style={{
+          borderColor: colors.cardBorder,
+          backgroundColor: "#fff",
+          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
+        }}
+      >
+        {yearOptions.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
     </div>
   </div>
-);
+</div>
+
+
+        <div className="px-4 pb-4 pt-1 mt-3">
+          <div className="h-56">
+            {hasData ? (
+              <Line data={monthlyData} options={baseOptions} />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                  style={{
+                    background: `conic-gradient(${colors.tealSoft} 0% 25%, ${colors.orangeSoft} 25% 50%, ${colors.tealSoft} 50% 75%, ${colors.orangeSoft} 75% 100%)`,
+                    color: colors.text,
+                  }}
+                >
+                  <i className="fas fa-chart-line text-lg" />
+                </div>
+                <p className="text-sm font-semibold" style={{ color: colors.text }}>
+                  Tidak ada data untuk tahun {selectedYear}
+                </p>
+                <p className="text-xs mt-1" style={{ color: colors.muted }}>
+                  Dokumen baru akan muncul di sini
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default ChartContainer;

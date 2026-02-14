@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import './DocumentTable.css';
+import { AlignCenter } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 
 const getStatusBadge = (status) => {
   const badges = {
-    active: { text: 'Aktif', class: 'badge-success' },
-    expired: { text: 'Kadaluarsa', class: 'badge-danger' },
-    expiring: { text: 'Akan Kadaluarsa', class: 'badge-warning' },
+    active: { text: "Aktif", tone: "success" },
+    expired: { text: "Kadaluarsa", tone: "danger" },
+    expiring: { text: "Akan Kadaluarsa", tone: "warning" },
   };
-  return badges[status] || { text: status, class: 'badge-secondary' };
+  return badges[status] || { text: status, tone: "neutral" };
 };
 
+// ✅ persis seperti screenshot (11 Februari 2026)
 const formatDate = (dateString) => {
-  if (!dateString) return '-';
+  if (!dateString) return "-";
   const date = new Date(dateString);
-  return date.toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  if (isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 };
 
-// ✅ PERBAIKAN: Fungsi untuk mendapatkan jenis dokumen dengan konsistensi maksimal
 const getDocumentType = (doc) => {
-  // 1. Coba dari payload (jika ada)
-  if (doc.payload) {
+  if (doc?.payload) {
     try {
-      const payload = typeof doc.payload === 'string' ? JSON.parse(doc.payload) : doc.payload;
+      const payload = typeof doc.payload === "string" ? JSON.parse(doc.payload) : doc.payload;
       if (payload.documentType) return payload.documentType;
       if (payload.type) return payload.type;
       if (payload.jenisDokumen) return payload.jenisDokumen;
@@ -33,277 +33,709 @@ const getDocumentType = (doc) => {
       console.error("Error parsing payload:", e);
     }
   }
-  
-  // 2. Coba dari field langsung
-  if (doc.documentType) return doc.documentType;
-  if (doc.type) return doc.type;
-  if (doc.jenisDokumen) return doc.jenisDokumen;
-  
-  // 3. Fallback
-  return 'MoU/PKS';
+  if (doc?.documentType) return doc.documentType;
+  if (doc?.type) return doc.type;
+  if (doc?.jenisDokumen) return doc.jenisDokumen;
+  return "MoU/PKS";
 };
 
-// ✅ PERBAIKAN: Filter yang sangat fleksibel untuk Non-Pemda
 const filterByDocumentType = (documents, documentTypeFilter) => {
-  if (!documentTypeFilter || documentTypeFilter === 'all') return documents;
-  
-  // Normalisasi filter: lowercase + hapus spasi
-  const normalizedFilter = documentTypeFilter.toLowerCase().replace(/\s+/g, '');
-  
-  return documents.filter(doc => {
-    const docType = getDocumentType(doc).toLowerCase().replace(/\s+/g, '');
-    
-    // Handle semua variasi penulisan
-    if (normalizedFilter === 'mou' || normalizedFilter === 'memorandum') {
-      return docType.includes('mou') || docType.includes('memorandum');
+  if (!documentTypeFilter || documentTypeFilter === "all") return documents;
+
+  const normalizedFilter = documentTypeFilter.toLowerCase().replace(/\s+/g, "");
+  return documents.filter((doc) => {
+    const docType = getDocumentType(doc).toLowerCase().replace(/\s+/g, "");
+    if (normalizedFilter === "mou" || normalizedFilter === "memorandum") {
+      return docType.includes("mou") || docType.includes("memorandum");
     }
-    if (normalizedFilter === 'pks' || normalizedFilter === 'kerja') {
-      return docType.includes('pks') || docType.includes('kerja');
+    if (normalizedFilter === "pks" || normalizedFilter === "kerja") {
+      return docType.includes("pks") || docType.includes("kerja");
     }
-    if (normalizedFilter.includes('perjanjian') && normalizedFilter.includes('kerja')) {
-      return docType.includes('perjanjian') && docType.includes('kerja');
+    if (normalizedFilter.includes("perjanjian") && normalizedFilter.includes("kerja")) {
+      return docType.includes("perjanjian") && docType.includes("kerja");
     }
-    
     return docType.includes(normalizedFilter);
   });
 };
 
-// ✅ TAMBAHKAN FUNGSI UNTUK CEK STATUS KADALUARSA
 const isDocumentExpired = (doc) => {
-  if (!doc.cooperationEndDate || doc.cooperationEndDate === '-') return false;
-  
+  if (!doc?.cooperationEndDate || doc.cooperationEndDate === "-") return false;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const endDate = new Date(doc.cooperationEndDate);
   if (isNaN(endDate.getTime())) return false;
-  
+
   endDate.setHours(0, 0, 0, 0);
   return endDate < today;
 };
 
-const DocumentTable = ({ 
-  documents, 
-  loading, 
-  documentTypeFilter = 'all',
-  statusFilter = 'all',
-  handleRenewClick,
-  handleViewHistory
-}) => {
-  // ✅ State untuk pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // 6 dokumen per halaman
+/* =========================
+   MODAL UI (INLINE) - kecil & tidak terlalu bold
+   ========================= */
+const TEAL = "#07b8af";
+const TEAL_DARK = "#008a9a";
+const NAVY = "#0b2e4b";
+const TEXT = "#0f172a";
+const MUTED = "#64748b";
+const BORDER = "rgba(2, 6, 23, 0.10)";
 
-  // ✅ Perbaikan: Filter dengan konsistensi maksimal
-  const filteredDocuments = filterByDocumentType(documents, documentTypeFilter);
+function ModalShell({ open, onClose, children }) {
+  if (!open) return null;
 
-  // ✅ Reset ke halaman 1 saat filter berubah
+  return (
+    <div
+      onMouseDown={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.55)",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 620,
+          background: "#fff",
+          borderRadius: 14,
+          boxShadow: "0 18px 40px rgba(2,6,23,0.25)",
+          overflow: "hidden",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalHeader({ iconNode, title, onClose }) {
+  return (
+    <div
+      style={{
+        padding: "14px 18px 12px",
+        borderBottom: "1px solid rgba(2,6,23,0.08)",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          width: 22,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+          color: TEAL,
+          lineHeight: 1,
+        }}
+      >
+        {iconNode}
+      </div>
+
+      <div style={{ flex: 1, fontSize: 18, fontWeight: 600, color: NAVY }}>
+        {title}
+      </div>
+
+      <button
+        onClick={onClose}
+        aria-label="Tutup"
+        style={{
+          border: "none",
+          background: "transparent",
+          fontSize: 18,
+          cursor: "pointer",
+          color: MUTED,
+          padding: 6,
+          borderRadius: 10,
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+function HistoryModal({ open, onClose, doc, historyCount = 0 }) {
+  const titleLine = useMemo(() => {
+    const type = getDocumentType(doc || {});
+    const partner =
+      doc?.partnerName || doc?.institutionalLevel || doc?.institution || "N/A";
+    return `${type} - ${partner}`;
+  }, [doc]);
+
+  return (
+    <ModalShell open={open} onClose={onClose}>
+      <ModalHeader
+  iconNode={<i className="fas fa-history" style={{ color: TEAL }} />}
+  title="History Perpanjangan"
+  onClose={onClose}
+/>
+
+      <div style={{ padding: 18 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: NAVY, marginBottom: 14 }}>
+          {titleLine}
+        </div>
+
+        <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 6,}}>
+          Jumlah Perpanjangan:
+        </div>
+        <div style={{ fontSize: 34, fontWeight: 700, color: NAVY, marginBottom: 14 }}>
+          {historyCount}x
+        </div>
+
+        <div style={{ textAlign: "center", fontSize: 15, color: NAVY, marginBottom: 16 }}>
+          Belum ada history perpanjangan
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%",
+            border: "none",
+            background: TEAL,
+            color: "#fff",
+            fontSize: 15,
+            fontWeight: 600,
+            padding: "12px 14px",
+            borderRadius: 12,
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = TEAL_DARK)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = TEAL)}
+        >
+          Tutup
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
+function RenewModal({ open, onClose, doc, onSubmit }) {
+  const [newEndDate, setNewEndDate] = useState("");
+  const [note, setNote] = useState("");
+
   useEffect(() => {
-    setCurrentPage(1);
-  }, [documentTypeFilter, statusFilter, filteredDocuments]);
+    if (open) {
+      setNewEndDate("");
+      setNote("");
+    }
+  }, [open]);
 
-  // ✅ Hitung total halaman
+  const type = getDocumentType(doc || {});
+  const partner = doc?.partnerName || doc?.institutionalLevel || doc?.institution || "N/A";
+
+  return (
+    <ModalShell open={open} onClose={onClose}>
+      <ModalHeader
+  iconNode={<i className="fas fa-sync-alt" style={{ color: "#11ba82" }} />}
+  title="Perpanjang Dokumen"
+  onClose={onClose}
+/>
+
+      <div style={{ padding: 18 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 14 }}>
+          <span style={{ fontWeight: 700 }}>{type}</span> dengan{" "}
+          <span style={{ fontWeight: 700 }}>{partner}</span>
+        </div>
+
+        <label
+          style={{
+            display: "block",
+            fontSize: 13,
+            fontWeight: 600,
+            color: NAVY,
+            marginBottom: 8,
+          }}
+        >
+          Tanggal Berakhir Baru <span style={{ color: "#ef4444" }}>*</span>
+        </label>
+
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <input
+            type="date"
+            value={newEndDate}
+            onChange={(e) => setNewEndDate(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "12px 44px 12px 12px",
+              borderRadius: 12,
+              border: `1px solid ${BORDER}`,
+              outline: "none",
+              fontSize: 14,
+              color: TEXT,
+              background: "#fff",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              right: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: MUTED,
+              pointerEvents: "none",
+              fontSize: 16,
+            }}
+          >
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "flex-start",
+            background: "rgba(245, 158, 11, 0.12)",
+            color: "#7c2d12",
+            padding: 12,
+            borderRadius: 12,
+            marginBottom: 14,
+          }}
+        >
+          <div style={{ fontSize: 16, lineHeight: 1 }}>⚠️</div>
+          <div style={{ lineHeight: 1.35, fontWeight: 600, fontSize: 13 }}>
+            Dokumen akan diperpanjang tanpa membuat dokumen baru. Status berubah menjadi "Aktif".
+          </div>
+        </div>
+
+        <label
+          style={{
+            display: "block",
+            fontSize: 13,
+            fontWeight: 600,
+            color: NAVY,
+            marginBottom: 8,
+          }}
+        >
+          Catatan Perpanjangan (Opsional)
+        </label>
+
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Contoh: Perpanjangan sesuai hasil evaluasi tahun 2026"
+          style={{
+            width: "100%",
+            minHeight: 110,
+            padding: 12,
+            borderRadius: 12,
+            border: `1px solid ${BORDER}`,
+            outline: "none",
+            fontSize: 14,
+            color: TEXT,
+            resize: "vertical",
+            marginBottom: 16,
+          }}
+        />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <button
+            onClick={onClose}
+            style={{
+              width: "100%",
+              padding: "12px 12px",
+              borderRadius: 12,
+              border: `1px solid ${BORDER}`,
+              background: "#fff",
+              color: NAVY,
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: "pointer",
+            }}
+          >
+            Batal
+          </button>
+
+          <button
+            onClick={() => onSubmit?.({ doc, newEndDate, note })}
+            disabled={!newEndDate}
+            style={{
+              width: "100%",
+              padding: "12px 12px",
+              borderRadius: 12,
+              border: "none",
+              background: !newEndDate ? "rgba(2,6,23,0.12)" : "#16a34a",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: !newEndDate ? "not-allowed" : "pointer",
+            }}
+          >
+            Perpanjang Sekarang
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+/* =========================
+   DOCUMENT TABLE
+   ========================= */
+const DocumentTable = ({
+  documents,
+  loading,
+  documentTypeFilter = "all",
+  statusFilter = "all",
+}) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const filteredDocuments = useMemo(
+    () => filterByDocumentType(documents || [], documentTypeFilter),
+    [documents, documentTypeFilter]
+  );
+
+  useEffect(() => setCurrentPage(1), [documentTypeFilter, statusFilter, filteredDocuments]);
+
   const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
-
-  // ✅ Ambil dokumen untuk halaman saat ini
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentDocuments = filteredDocuments.slice(indexOfFirstItem, indexOfLastItem);
 
-  // ✅ Fungsi untuk pindah ke halaman sebelumnya
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  // ✅ Fungsi untuk pindah ke halaman berikutnya
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  // ✅ Fungsi untuk pindah ke halaman tertentu
+  const handlePreviousPage = () => currentPage > 1 && setCurrentPage((p) => p - 1);
+  const handleNextPage = () => currentPage < totalPages && setCurrentPage((p) => p + 1);
   const handlePageChange = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
+    if (pageNumber >= 1 && pageNumber <= totalPages) setCurrentPage(pageNumber);
   };
+
+  // ===== Palette: ngikut screenshot =====
+  const C = {
+    text: "#0f172a",
+    muted: "#64748b",
+    border: "rgba(2, 6, 23, 0.08)",
+    softBorder: "rgba(2, 6, 23, 0.06)",
+    bg: "#ffffff",
+    headBg: "#ffffff",
+    teal: "#07b8af",
+    tealSoft: "rgba(7, 184, 175, 0.16)",
+    pksBg: "rgba(255, 107, 53, 0.14)",
+    pksText: "#c2410c",
+    statusBg: "rgba(2, 6, 23, 0.04)",
+    statusText: "#0b2e4b",
+  };
+
+  const s = {
+    card: {
+      background: C.bg,
+      border: `1px solid ${C.border}`,
+      borderRadius: 14,
+      padding: 22,
+      boxShadow: "0 10px 28px rgba(2, 6, 23, 0.06)",
+    },
+    header: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingBottom: 12,
+      marginBottom: 14,
+      borderBottom: `1px solid ${C.softBorder}`,
+    },
+    title: { fontSize: 18, fontWeight: 600, color: C.text, margin: 0 },
+    total: { fontSize: 14, fontWeight: 500, color: C.muted },
+
+    tableWrap: { overflowX: "auto" },
+    table: { width: "100%", borderCollapse: "separate", borderSpacing: 0 },
+    th: {
+      padding: "14px 16px",
+      fontSize: 14,
+      fontWeight: 600,
+      color: "#0b2e4b",
+      background: C.headBg,
+      textAlign: "left",
+      borderBottom: `1px solid ${C.softBorder}`,
+      whiteSpace: "nowrap",
+    },
+    td: {
+      padding: "16px 16px",
+      fontSize: 14,
+      color: C.text,
+      borderBottom: `1px solid rgba(2, 6, 23, 0.04)`,
+      verticalAlign: "middle",
+    },
+
+    docPill: (type) => {
+      const key = (type || "").toLowerCase();
+      if (key.includes("pks")) {
+        return {
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "8px 14px",
+          borderRadius: 999,
+          fontWeight: 600,
+          fontSize: 13,
+          background: C.pksBg,
+          color: C.pksText,
+          minWidth: 58,
+        };
+      }
+      return {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "8px 14px",
+        borderRadius: 999,
+        fontWeight: 600,
+        fontSize: 13,
+        background: C.tealSoft,
+        color: "#007a73",
+        minWidth: 58,
+      };
+    },
+
+    statusPill: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "10px 14px",
+      borderRadius: 999,
+      fontWeight: 600,
+      fontSize: 13,
+      background: C.statusBg,
+      color: C.statusText,
+      whiteSpace: "nowrap",
+    },
+
+    pagination: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+      paddingTop: 12,
+      userSelect: "none",
+    },
+    navBtn: (disabled) => ({
+      border: "none",
+      background: "transparent",
+      fontSize: 13,
+      color: disabled ? "rgba(100, 116, 139, 0.35)" : "#64748b",
+      cursor: disabled ? "not-allowed" : "pointer",
+      padding: "4px 8px",
+      borderRadius: 10,
+      fontWeight: 500,
+    }),
+    pageRow: { display: "flex", alignItems: "center", gap: 12 },
+    pageBtn: (active) => ({
+      border: "none",
+      background: active ? C.teal : "transparent",
+      color: active ? "#fff" : "#94a3b8",
+      fontWeight: 600,
+      fontSize: 14,
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxShadow: active ? "0 8px 16px rgba(7, 184, 175, 0.22)" : "none",
+    }),
+  };
+
+  const [hoverIdx, setHoverIdx] = useState(null);
+
+  // ✅ modal internal (satu pintu, biar modal lama tidak ikut)
+  const [modal, setModal] = useState({ type: null, doc: null }); // null | renew | history
+  const openRenewModal = (doc) => setModal({ type: "renew", doc });
+  const openHistoryModal = (doc) => setModal({ type: "history", doc });
+  const closeModal = () => setModal({ type: null, doc: null });
 
   if (loading) {
-    return <div className="loading">Memuat data...</div>;
+    return <div style={{ textAlign: "center", padding: 30, color: C.muted }}>Memuat data...</div>;
   }
 
   if (!filteredDocuments || filteredDocuments.length === 0) {
     return (
-      <div className="empty-state">
-        <div className="empty-icon">📋</div>
-        <p className="empty-text">
-          {documentTypeFilter && documentTypeFilter !== 'all' 
-            ? `Tidak ada dokumen jenis "${documentTypeFilter}"` 
-            : 'Tidak ada data dokumen'}
-        </p>
-        <p className="empty-hint">
-          {documentTypeFilter && documentTypeFilter !== 'all' 
-            ? 'Coba pilih jenis dokumen lain atau tambahkan dokumen baru' 
-            : 'Silakan tambahkan dokumen kerja sama terlebih dahulu'}
-        </p>
+      <div style={{ textAlign: "center", padding: 34, color: C.muted }}>
+        <div style={{ fontSize: 34, marginBottom: 10 }}>📋</div>
+        <div style={{ fontWeight: 600, color: C.text }}>Tidak ada data dokumen</div>
       </div>
     );
   }
 
   return (
-    <div className="table-container">
-      <div className="table-header">
-        <h3>Daftar Dokumen Terbaru</h3>
-        <span className="total-count">Total : {filteredDocuments.length}</span>
-      </div>
-      
-      <div className="table-responsive">
-        <table className="document-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Jenis</th>
-              <th>Nomor Dokumen</th>
-              <th>Mitra</th>
-              <th>Tanggal Mulai</th>
-              <th>Tanggal Berakhir</th>
-              <th>Status</th>
-              {/* ✅ TAMBAHKAN KOLOM AKSI JIKA FILTER KADALUARSA */}
-              {statusFilter === 'Kadaluarsa' && <th>Aksi</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {currentDocuments.map((doc, index) => {
-              const badge = getStatusBadge(doc.status || (isDocumentExpired(doc) ? 'expired' : 'active'));
-              const docType = getDocumentType(doc); // ✅ Gunakan fungsi konsisten
-              
-              return (
-                <tr key={doc.id || index}>
-                  <td>{indexOfFirstItem + index + 1}</td>
-                  <td>
-                    <span className={`doc-type doc-type-${docType.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {docType}
-                    </span>
-                  </td>
-                  <td>{doc.documentNumber || doc.officeDocNumber || '-'}</td>
-                  <td>
-                    {doc.partnerName || 
-                     doc.institutionalLevel || 
-                     doc.institution || 
-                     (doc.payload && typeof doc.payload === 'string' 
-                        ? JSON.parse(doc.payload).institutionalLevel 
-                        : '-')}
-                  </td>
-                  <td>{formatDate(doc.startDate || doc.cooperationStartDate)}</td>
-                  <td>{formatDate(doc.endDate || doc.cooperationEndDate)}</td>
-                  <td>
-                    <span className={`badge ${badge.class}`}>
-                      {badge.text}
-                    </span>
-                  </td>
-                  {/* ✅ TAMBAHKAN KOLOM AKSI JIKA FILTER KADALUARSA */}
-                  {statusFilter === 'Kadaluarsa' && (
-                    <td className="action-cell">
-                      <div className="action-buttons">
-                        <button
-                          onClick={() => handleRenewClick(doc)}
-                          className="btn-renew"
-                          title="Perpanjang dokumen"
-                        >
-                          <i className="fas fa-sync-alt"></i> Perpanjang
-                        </button>
-                        <button
-                          onClick={() => handleViewHistory(doc.id)}
-                          className="btn-history"
-                          title="Lihat history perpanjangan"
-                        >
-                          <i className="fas fa-history"></i> History
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <>
+      <div style={s.card}>
+        <div style={s.header}>
+          <h3 style={s.title}>Daftar Dokumen Terbaru</h3>
+          <span style={s.total}>Total : {filteredDocuments.length}</span>
+        </div>
 
-      {/* ✅ Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="pagination-container">
-          <div className="pagination-info">
-            Menampilkan {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filteredDocuments.length)} dari {filteredDocuments.length} dokumen
-          </div>
-          
-          <div className="pagination-controls">
-            <button 
-              onClick={handlePreviousPage} 
+        <div style={s.tableWrap}>
+          <table style={s.table}>
+            <thead>
+              <tr>
+                <th style={{ ...s.th, width: 70 }}>No</th>
+                <th style={{ ...s.th, width: 120 }}>Jenis</th>
+                <th style={s.th}>Nomor Dokumen</th>
+                <th style={s.th}>Mitra</th>
+                <th style={{ ...s.th, width: 180 }}>Tanggal Mulai</th>
+                <th style={{ ...s.th, width: 180 }}>Tanggal Berakhir</th>
+                <th style={{ ...s.th, width: 220 }}>Status</th>
+                {statusFilter === "Kadaluarsa" && <th style={{ ...s.th, width: 220 }}>Aksi</th>}
+              </tr>
+            </thead>
+
+            <tbody>
+              {currentDocuments.map((doc, idx) => {
+                const badge = getStatusBadge(
+                  doc.status || (isDocumentExpired(doc) ? "expired" : "active")
+                );
+                const docType = getDocumentType(doc);
+
+                return (
+                  <tr
+                    key={doc.id || idx}
+                    onMouseEnter={() => setHoverIdx(idx)}
+                    onMouseLeave={() => setHoverIdx(null)}
+                    style={{
+                      background: hoverIdx === idx ? "rgba(2, 6, 23, 0.02)" : "transparent",
+                    }}
+                  >
+                    <td style={s.td}>{indexOfFirstItem + idx + 1}</td>
+
+                    <td style={s.td}>
+                      <span style={s.docPill(docType)}>{docType}</span>
+                    </td>
+
+                    <td style={s.td}>{doc.documentNumber || doc.officeDocNumber || "-"}</td>
+
+                    <td style={s.td}>
+                      {doc.partnerName ||
+                        doc.institutionalLevel ||
+                        doc.institution ||
+                        (doc.payload && typeof doc.payload === "string"
+                          ? (() => {
+                              try {
+                                return JSON.parse(doc.payload).institutionalLevel || "-";
+                              } catch {
+                                return "-";
+                              }
+                            })()
+                          : "-")}
+                    </td>
+
+                    <td style={s.td}>{formatDate(doc.startDate || doc.cooperationStartDate)}</td>
+                    <td style={s.td}>{formatDate(doc.endDate || doc.cooperationEndDate)}</td>
+
+                    <td style={s.td}>
+                      <span style={s.statusPill}>{badge.text}</span>
+                    </td>
+
+                    {statusFilter === "Kadaluarsa" && (
+                      <td style={{ ...s.td, textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: 10, flexWrap: "wrap" }}>
+                          <button
+                            onClick={() => openRenewModal(doc)}
+                            title="Perpanjang dokumen"
+                            style={{
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "8px 12px",
+                              background: "#10b981",
+                              color: "#fff",
+                              cursor: "pointer",
+                              fontWeight: 600,
+                              fontSize: 12,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            <i className="fas fa-sync-alt" />
+                            Perpanjang
+                          </button>
+
+                          <button
+                            onClick={() => openHistoryModal(doc)}
+                            title="Lihat history perpanjangan"
+                            style={{
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "8px 12px",
+                              background: C.teal,
+                              color: "#fff",
+                              cursor: "pointer",
+                              fontWeight: 600,
+                              fontSize: 12,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            <i className="fas fa-history" />
+                            History
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div style={s.pagination}>
+            <button
+              onClick={handlePreviousPage}
               disabled={currentPage === 1}
-              className="pagination-btn pagination-btn-prev"
+              style={s.navBtn(currentPage === 1)}
             >
-              <i className="fas fa-chevron-left"></i> Sebelumnya
+              ‹ Sebelumnya
             </button>
 
-            <div className="pagination-pages">
-              {/* Tombol halaman 1 */}
-              {currentPage > 3 && (
-                <>
-                  <button 
-                    onClick={() => handlePageChange(1)} 
-                    className={`pagination-page ${currentPage === 1 ? 'active' : ''}`}
-                  >
-                    1
+            <div style={s.pageRow}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                const active = page === currentPage;
+                return (
+                  <button key={page} onClick={() => handlePageChange(page)} style={s.pageBtn(active)}>
+                    {String(page).padStart(2, "0")}
                   </button>
-                  {currentPage > 4 && <span className="pagination-ellipsis">...</span>}
-                </>
-              )}
-
-              {/* Tombol halaman di sekitar halaman aktif */}
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(page => {
-                  // Tampilkan halaman aktif dan 2 halaman sebelum/sesudahnya
-                  return page >= Math.max(2, currentPage - 2) && 
-                         page <= Math.min(totalPages - 1, currentPage + 2);
-                })
-                .map(page => (
-                  <button 
-                    key={page} 
-                    onClick={() => handlePageChange(page)} 
-                    className={`pagination-page ${currentPage === page ? 'active' : ''}`}
-                  >
-                    {page}
-                  </button>
-                ))}
-
-              {/* Tombol halaman terakhir */}
-              {currentPage < totalPages - 2 && (
-                <>
-                  {currentPage < totalPages - 3 && <span className="pagination-ellipsis">...</span>}
-                  <button 
-                    onClick={() => handlePageChange(totalPages)} 
-                    className={`pagination-page ${currentPage === totalPages ? 'active' : ''}`}
-                  >
-                    {totalPages}
-                  </button>
-                </>
-              )}
+                );
+              })}
             </div>
 
-            <button 
-              onClick={handleNextPage} 
+            <button
+              onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className="pagination-btn pagination-btn-next"
+              style={s.navBtn(currentPage === totalPages)}
             >
-              Selanjutnya <i className="fas fa-chevron-right"></i>
+              Berikutnya ›
             </button>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+
+      {/* ========= MODALS INTERNAL ========= */}
+      <HistoryModal
+        open={modal.type === "history"}
+        onClose={closeModal}
+        doc={modal.doc}
+        historyCount={0}
+      />
+
+      <RenewModal
+        open={modal.type === "renew"}
+        onClose={closeModal}
+        doc={modal.doc}
+        onSubmit={({ doc, newEndDate, note }) => {
+          // ✅ TODO: ganti ini dengan API kamu
+          console.log("RENEW SUBMIT:", { id: doc?.id, newEndDate, note });
+          closeModal();
+        }}
+      />
+    </>
   );
 };
 
