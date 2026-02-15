@@ -50,6 +50,20 @@ function dataURLtoBlob(dataUrl) {
   return new Blob([bytes], { type: mime });
 }
 
+// Helper function untuk format tanggal dd-mm-yyyy
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "-";
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}-${month}-${year}`;
+};
+
 export default function NonPemdaContent() {
   const [mous, setMous] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -271,7 +285,7 @@ export default function NonPemdaContent() {
     <div className="space-y-6 pt-6">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="text-2xl font-bold text-gray-800 mt-2">Instansi Non-Pemerintah Daerah</h3>
+          <h4 className="font-bold text-gray-800 mt-2">Instansi Non-Pemerintah Daerah</h4>
           <p className="text-sm text-gray-500 mb-1">
             Pengelolaan dokumen kerja sama dengan lembaga di luar Pemerintah Daerah
           </p>
@@ -404,11 +418,11 @@ export default function NonPemdaContent() {
                     </td>
 
                     <td className="px-4 py-4 text-center align-middle whitespace-nowrap">
-                      {mou.cooperationStartDate || "-"}
+                      {formatDate(mou.cooperationStartDate)}
                     </td>
 
                     <td className="px-4 py-4 text-center align-middle whitespace-nowrap">
-                      {mou.cooperationEndDate || "-"}
+                      {formatDate(mou.cooperationEndDate)}
                     </td>
 
                     <td className="px-4 py-4 text-center align-middle">
@@ -637,9 +651,9 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl overflow-y-auto max-h-[90vh]">
         <div className="p-6">
-          <h2 className="text-xl font-bold mb-4">
+          <h3 className="text-xl font-bold mb-4">
             {initialData ? 'Edit Dokumen' : 'Tambah Dokumen Non-Pemerintah Daerah'}
-          </h2>
+          </h3>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -830,11 +844,6 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                            file:bg-gray-100 file:text-gray-700
                            hover:file:bg-gray-200"
               />
-              {(formData.file || formData.finalDocumentUrl) && (
-                <p className="text-xs text-gray-500 mt-1">
-                  File: <span className="font-medium">{formData.finalDocumentName || "Dokumen tersimpan"}</span>
-                </p>
-              )}
               <p className="text-xs text-gray-400 mt-1">
                 Format file yang diizinkan : PDF dan Word (.doc/.docx)<br />
                 Maksimal ukuran file : 10 MB
@@ -863,7 +872,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800"
+                className="px-4 py-2 rounded-md bg-[#00b5a9] text-white hover:bg-[#008a99]"
               >
                 {initialData ? "Simpan Perubahan" : "Simpan Dokumen"}
               </button>

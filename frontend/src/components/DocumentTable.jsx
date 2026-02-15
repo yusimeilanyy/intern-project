@@ -368,7 +368,7 @@ function RenewModal({ open, onClose, doc, onSubmit }) {
         >
           <div style={{ fontSize: 16, lineHeight: 1 }}>⚠️</div>
           <div style={{ lineHeight: 1.35, fontWeight: 600, fontSize: 13 }}>
-            Dokumen akan diperpanjang tanpa membuat dokumen baru. Status berubah menjadi "Aktif".
+            Status dokumen Anda akan diperbarui secara otomatis menjadi 'Aktif' setelah proses perpanjangan berhasil diselesaikan
           </div>
         </div>
 
@@ -420,9 +420,9 @@ function RenewModal({ open, onClose, doc, onSubmit }) {
               padding: "12px 12px",
               borderRadius: 12,
               border: "none",
-              background: !newEndDate ? "rgba(2,6,23,0.12)" : "#16a34a",
+              background: !newEndDate ? "rgba(2,6,23,0.12)" : "rgb(7, 184, 175)",
               color: "#fff",
-              fontWeight: 700,
+              fontWeight: 600,
               fontSize: 14,
               cursor: !newEndDate ? "not-allowed" : "pointer",
             }}

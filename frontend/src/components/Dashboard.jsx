@@ -207,7 +207,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex-grow container mx-auto px-4 py-6 mt-1">
-      <h2 className="text-xl font-bold text-[#006db0] mb-1">Overview Kerja Sama</h2>
+      <h3 className="text-xl font-bold text-[#006db0] mb-1">Overview Kerja Sama</h3>
       <p className="text-gray-500 text-sm mb-6">
          Pantau status, masa berlaku dan tindakan yang diperlukan untuk semua dokumen kerja sama
       </p>

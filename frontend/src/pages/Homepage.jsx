@@ -8,9 +8,9 @@ export default function Homepage({ activeTab, onTabChange }) {
 
   return (
     <div className="mb-8">
-  <h2 className="text-2xl font-bold text-[#07b8af] mb-2">
+  <h3 className="text-2xl font-bold text-[#006db0] mb-2">
     Manajemen Dokumen
-  </h2>
+  </h3>
   <p className="text-gray-500 text-sm mb-6">
     Kelola seluruh dokumen kerja sama, pantau masa berlaku, dan lakukan tindakan perpanjangan atau pembaharuan
   </p>

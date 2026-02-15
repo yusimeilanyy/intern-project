@@ -266,7 +266,7 @@ export default function ExpiringStatsWidget() {
           <div className="flex items-center gap-2">
             <BellIcon className="h-6 w-6 text-red-600" />
             <div>
-              <h3 className="font-bold text-lg text-red-800">Dokumen Perlu Perhatian</h3>
+              <h4 className="font-bold text-red-800">Dokumen Perlu Perhatian</h4>
               <p className="text-sm text-red-600 mt-1">
                 {expanded ? 'Klik untuk sembunyikan' : 'Klik untuk selengkapnya'}
               </p>

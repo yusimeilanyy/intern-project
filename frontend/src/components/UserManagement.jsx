@@ -14,6 +14,17 @@ export default function UserManagement({ isAdmin }) {
     role: 'user'
   });
 
+  // ✅ FUNGSI UNTUK RESET FORM
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      email: '',
+      password: '',
+      full_name: '',
+      role: 'user'
+    });
+  };
+
   useEffect(() => {
     if (!isAdmin) {
       setError("Akses ditolak. Hanya admin yang dapat mengakses halaman ini.");
@@ -86,7 +97,7 @@ export default function UserManagement({ isAdmin }) {
 
       alert("User berhasil dibuat!");
       setShowForm(false);
-      setFormData({ username: '', email: '', password: '', full_name: '', role: 'user' });
+      resetForm(); // ✅ RESET FORM SETELAH SUKSES
       loadUsers();
     } catch (err) {
       console.error("Register user error:", err);
@@ -160,28 +171,31 @@ export default function UserManagement({ isAdmin }) {
     );
   }
 
-  // Empty State
-  if (users.length === 0) {
-    return (
-      <div className="space-y-6 pt-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Manajemen Pengguna</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Kelola akun pengguna sistem SIKERMA
-            </p>
-          </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-gray-800"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Tambah User
-          </button>
+  // ✅ HEADER DIPINDAH KE LUAR KONDISI - HANYA 1 KALI!
+  return (
+    <div className="space-y-6 pt-6">
+      {/* Header - TAMPIL DI SEMUA KONDISI */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-2xl font-bold text-[#006db0] mb-2">Manajemen Pengguna</h3>
+          <p className="text-gray-500 text-sm mb-6">Kelola akun pengguna sistem SIKERMA</p>
         </div>
+        <button
+          onClick={() => {
+            resetForm(); // ✅ RESET FORM SEBELUM BUKA MODAL
+            setShowForm(true);
+          }}
+          className="bg-[#00b5a9] text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-[#008a99]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Tambah User
+        </button>
+      </div>
 
+      {/* Kondisi: Empty State atau Normal State */}
+      {users.length === 0 ? (
         <div className="bg-white rounded-lg border p-12 text-center">
           <div className="text-gray-300 text-6xl mb-4">
             <i className="fas fa-users"></i>
@@ -190,18 +204,91 @@ export default function UserManagement({ isAdmin }) {
           <p className="text-gray-500 mb-6">
             Database belum memiliki data pengguna. Tambahkan pengguna pertama Anda!
           </p>
+        </div>
+      ) : (
+        // Normal State - Tampilkan tabel
+        <div className="bg-white rounded-lg border p-6">
+          {/* Tabel User */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm border-separate border-spacing-y-4">
+              <thead className="border-b border-gray-300">
+                <tr className="text-[11px] text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-left font-semibold">USERNAME</th>
+                  <th className="px-4 py-3 text-left font-semibold">EMAIL</th>
+                  <th className="px-4 py-3 text-left font-semibold">NAMA LENGKAP</th>
+                  <th className="px-4 py-3 text-center font-semibold">ROLE</th>
+                  <th className="px-4 py-3 text-center font-semibold">STATUS</th>
+                  <th className="px-4 py-3 text-center font-semibold">DIBUAT</th>
+                  <th className="px-4 py-3 text-center font-semibold">AKSI</th>
+                </tr>
+              </thead>
 
-          {showForm && (
-            <div className="bg-gray-50 rounded-lg p-6 border">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <i className="fas fa-plus-circle text-blue-600"></i>
+              <tbody className="text-[13px] text-gray-700">
+                {users.map(user => (
+                  <tr key={user.id} className="hover:bg-[#ebfaf9] transition">
+                    <td className="px-4 py-4 text-left align-middle">
+                      <strong>{user.username}</strong>
+                    </td>
+                    <td className="px-4 py-4 text-left align-middle">
+                      {user.email}
+                    </td>
+                    <td className="px-4 py-4 text-left align-middle">
+                      {user.full_name || '-'}
+                    </td>
+                    <td className="px-4 py-4 text-center align-middle">
+                      <span className={`inline-block px-2 py-1 text-xs rounded-md font-medium ${user.role === 'admin'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-blue-100 text-blue-800'
+                        }`}>
+                        {user.role === 'admin' ? 'Administrator' : 'User'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center align-middle">
+                      <span className={`inline-block px-2 py-1 text-xs rounded-md ${user.is_active
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                        }`}>
+                        {user.is_active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center align-middle">
+                      {(() => {
+                        const date = new Date(user.created_at);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        return `${day}-${month}-${year}`;
+                      })()}
+                    </td>
+                    <td className="px-4 py-4 text-center align-middle">
+                      <button
+                        onClick={() => handleDelete(user.id, user.username)}
+                        className="rounded-md p-2 transition"
+                        disabled={user.id === JSON.parse(localStorage.getItem('user'))?.id}
+                      >
+                        <img src={DeleteIcon} className="h-4 w-4" alt="Delete" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Form Tambah User - MUNCUL SEPERTI TOMBOL TAMBAH DOKUMEN */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl overflow-y-auto max-h-[90vh]">
+            <div className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                 Tambah User Baru
               </h3>
-
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
                       Username <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -214,8 +301,8 @@ export default function UserManagement({ isAdmin }) {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
                       Email <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -230,23 +317,35 @@ export default function UserManagement({ isAdmin }) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Password <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="password"
-                      className={inputClass}
-                      placeholder="••••••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      minLength="6"
-                    />
-                  </div>
+<div className="mb-2">
+  <label className="block text-sm font-medium text-gray-700 mb-3">
+    Password <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <input
+      type="password"
+      className={inputClass}
+      placeholder="••••••••••••"
+      value={formData.password}
+      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+      required
+      minLength="6"
+    />
+    <button
+      type="button"
+      onClick={() => {
+        const input = document.querySelector('input[type="password"]');
+        input.type = input.type === 'password' ? 'text' : 'password';
+      }}
+      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+    >
+      <i className="fas fa-eye"></i>
+    </button>
+  </div>
+</div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
                       Nama Lengkap
                     </label>
                     <input
@@ -259,8 +358,8 @@ export default function UserManagement({ isAdmin }) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
                     Role <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -274,207 +373,23 @@ export default function UserManagement({ isAdmin }) {
                   </select>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4 border-t">
+                <div className="flex justify-end gap-2 pt-4">
                   <button
                     type="button"
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => {
+                      setShowForm(false);
+                      resetForm(); // ✅ RESET FORM SAAT KLIK BATAL
+                    }}
                   >
                     Batal
                   </button>
-                  <button type="submit" className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800">
+                  <button type="submit" className="px-4 py-2 rounded-md bg-[#00b5a9] text-white hover:bg-[#008a99]">
                     Simpan User
                   </button>
                 </div>
               </form>
             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Normal State - Tampilkan tabel
-  return (
-    <div className="space-y-6 pt-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Manajemen Pengguna</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola akun pengguna sistem SIKERMA
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-gray-800"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          Tambah User
-        </button>
-      </div>
-
-      {/* Form Tambah User */}
-      {showForm ? (
-        <div className="bg-white rounded-lg border p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i className="fas fa-plus-circle text-blue-600"></i>
-            Tambah User Baru
-          </h3>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  placeholder="Masukkan username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  className={inputClass}
-                  placeholder="Masukkan email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  className={inputClass}
-                  placeholder="••••••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength="6"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nama Lengkap
-                </label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  placeholder="Masukkan nama lengkap"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Role <span className="text-red-500">*</span>
-              </label>
-              <select
-                className={selectClass}
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                required
-              >
-                <option value="user">User</option>
-                <option value="admin">Administrator</option>
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <button
-                type="button"
-                className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-                onClick={() => setShowForm(false)}
-              >
-                Batal
-              </button>
-              <button type="submit" className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800">
-                Simpan User
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : (
-
-        // Tabel User - HANYA TAMPIL SAAT FORM TIDAK DIBUKA
-        <div className="bg-white rounded-lg border p-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border-separate border-spacing-y-4">
-              <thead className="border-b border-gray-300">
-                <tr className="text-[11px] text-gray-500 uppercase tracking-wide">
-                  <th className="px-4 py-3 text-left font-semibold">Username</th>
-                  <th className="px-4 py-3 text-left font-semibold">Email</th>
-                  <th className="px-4 py-3 text-left font-semibold">Nama Lengkap</th>
-                  <th className="px-4 py-3 text-center font-semibold">Role</th>
-                  <th className="px-4 py-3 text-center font-semibold">Status</th>
-                  <th className="px-4 py-3 text-center font-semibold">Dibuat</th>
-                  <th className="px-4 py-3 text-center font-semibold">Aksi</th>
-                </tr>
-              </thead>
-
-              <tbody className="text-[13px] text-gray-700">
-                {users.map(user => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition">
-                    <td className="px-4 py-4 text-left align-middle">
-                      <strong>{user.username}</strong>
-                    </td>
-                    <td className="px-4 py-4 text-left align-middle">
-                      {user.email}
-                    </td>
-                    <td className="px-4 py-4 text-left align-middle">
-                      {user.full_name || '-'}
-                    </td>
-                    <td className="px-4 py-4 text-center align-middle">
-                      <span className={`inline-block px-3 py-1 text-xs rounded-md font-medium ${user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-blue-100 text-blue-800'
-                        }`}>
-                        {user.role === 'admin' ? 'Administrator' : 'User'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center align-middle">
-                      <span className={`inline-block px-3 py-1 text-xs rounded-md font-medium ${user.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                        }`}>
-                        {user.is_active ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center align-middle">
-                      {new Date(user.created_at).toLocaleDateString('id-ID')}
-                    </td>
-                    <td className="px-4 py-4 text-center align-middle">
-                      <button
-                        onClick={() => handleDelete(user.id, user.username)}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md p-2 transition"
-                        disabled={user.id === JSON.parse(localStorage.getItem('user'))?.id}
-                      >
-                        <img src={DeleteIcon} className="h-4 w-4" alt="Delete" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       )}
