@@ -74,6 +74,7 @@ export default function PemdaContent() {
   const [editingMou, setEditingMou] = useState(null);
   const [filter, setFilter] = useState('all');
   const [documentTypeFilter, setDocumentTypeFilter] = useState('all'); // ✅ TAMBAHAN: Filter Jenis Perjanjian
+  const [searchQuery, setSearchQuery] = useState(''); // ✅ TAMBAHAN: Search query
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
   const [loading, setLoading] = useState(true);
 
@@ -185,13 +186,27 @@ export default function PemdaContent() {
     }
   };
 
-  // ✅ PERBAIKAN: Filter dengan dua kriteria (Status + Jenis Perjanjian)
+  // ✅ PERBAIKAN: Filter dengan tiga kriteria (Status + Jenis Perjanjian + Pencarian)
   const filteredMoUs = Array.isArray(mous)
     ? mous.filter(mou => {
         const statusMatch = filter === 'all' || mou.status === filter;
         const typeMatch = documentTypeFilter === 'all' ||
           mou.documentType === documentTypeFilter;
-        return statusMatch && typeMatch;
+        
+        // Pencarian: cari di semua field teks (jenis, tingkat kerja sama, mitra, nomor, catatan, dll)
+        const searchLower = searchQuery.toLowerCase().trim();
+        const hasSearchMatch = searchLower === '' ||
+          mou.documentType?.toLowerCase().includes(searchLower) ||
+          mou.institutionalLevel?.toLowerCase().includes(searchLower) ||
+          mou.type?.toLowerCase().includes(searchLower) ||
+          mou.bpsdmpPIC?.toLowerCase().includes(searchLower) ||
+          mou.partnerPIC?.toLowerCase().includes(searchLower) ||
+          mou.officeDocNumber?.toLowerCase().includes(searchLower) ||
+          mou.partnerDocNumber?.toLowerCase().includes(searchLower) ||
+          mou.notes?.toLowerCase().includes(searchLower) ||
+          mou.status?.toLowerCase().includes(searchLower);
+
+        return statusMatch && typeMatch && hasSearchMatch;
       })
     : [];
 
@@ -344,38 +359,41 @@ export default function PemdaContent() {
 
       {/* Content Box */}
       <div className="bg-white rounded-lg border p-6 mt-3">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <img src={FileBlack} className="h-5 w-5" alt="File Icon" />
-            <span className="font-medium">Riwayat Dokumen ({filteredMoUs.length})</span>
-          </div>
+       <div className="flex justify-between items-center mb-4">
+  <div className="flex items-center gap-2">
+    <img src={FileBlack} className="h-5 w-5" alt="File Icon" />
+    <span className="font-medium">Riwayat Dokumen ({filteredMoUs.length})</span>
+  </div>
 
-          {/* ✅ TAMBAHKAN FILTER JENIS PERJANJIAN DI SINI */}
-          <div className="flex items-center gap-3">
-            {/* Filter Jenis Perjanjian */}
-            <select
-              value={documentTypeFilter}
-              onChange={(e) => setDocumentTypeFilter(e.target.value)}
-              className={filterSelectClass}
-            >
-              <option value="all">Semua Jenis Perjanjian</option>
-              <option value="MoU">MoU (Memorandum of Understanding)</option>
-              <option value="PKS">PKS (Perjanjian Kerja Sama)</option>
-            </select>
+  {/* ✅ PENCARIAN DI KANAN — BENTUK MODERN (tanpa border bawah berlebihan) */}
+  <div className="flex items-center gap-3">
+    {/* Filter Status (kiri dari pencarian) */}
+    <select
+      value={filter}
+      onChange={(e) => setFilter(e.target.value)}
+      className={filterSelectClass}
+    >
+      <option value="all">Semua Status</option>
+      {statusOptions.map(status => (
+        <option key={status} value={status}>{status}</option>
+      ))}
+    </select>
 
-            {/* Filter Status */}
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className={filterSelectClass}
-            >
-              <option value="all">Semua Status</option>
-              {statusOptions.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+    {/* 🔍 PENCARIAN CEPAT — DI SEBELAH KANAN, BENTUK RAPI */}
+<div className="relative">
+  <input
+    type="text"
+    placeholder="Cari dokumen..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="w-64 h-11 px-4 py-6 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm placeholder:text-gray-500"
+  />
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+</div>
+  </div>
+</div>
 
         {loading ? (
           <div className="text-center py-12">
@@ -386,19 +404,20 @@ export default function PemdaContent() {
           <div className="text-center py-12 flex flex-col items-center justify-center">
             <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
             <p className="text-gray-500">
-              {documentTypeFilter !== 'all' || filter !== 'all'
-                ? 'Tidak ada dokumen sesuai filter yang dipilih'
+              {searchQuery || documentTypeFilter !== 'all' || filter !== 'all'
+                ? 'Tidak ada dokumen sesuai pencarian/filter yang dipilih'
                 : 'Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.'}
             </p>
-            {(documentTypeFilter !== 'all' || filter !== 'all') && (
+            {(searchQuery || documentTypeFilter !== 'all' || filter !== 'all') && (
               <button
                 onClick={() => {
+                  setSearchQuery('');
                   setDocumentTypeFilter('all');
                   setFilter('all');
                 }}
                 className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
               >
-                Reset Filter
+                Reset Pencarian & Filter
               </button>
             )}
           </div>

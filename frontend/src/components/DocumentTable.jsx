@@ -484,11 +484,11 @@ const DocumentTable = ({ documents, loading, documentTypeFilter = "all", statusF
     docPill: (type) => {
       const key = (type || "").toLowerCase();
       if (key.includes("pks")) {
-        return { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", borderRadius: 999, fontWeight: 600, fontSize: 13, background: C.pksBg, color: C.pksText, minWidth: 58 };
+        return { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", borderRadius: 10, fontWeight: 600, fontSize: 13, background: C.pksBg, color: C.pksText, minWidth: 58 };
       }
-      return { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", borderRadius: 999, fontWeight: 600, fontSize: 13, background: C.tealSoft, color: "#007a73", minWidth: 58 };
+      return { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", borderRadius: 10, fontWeight: 600, fontSize: 13, background: C.tealSoft, color: "#007a73", minWidth: 58 };
     },
-    statusPill: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "10px 14px", borderRadius: 999, fontWeight: 600, fontSize: 13, background: C.statusBg, color: C.statusText, whiteSpace: "nowrap" },
+    statusPill: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "10px 14px", borderRadius: 10, fontWeight: 600, fontSize: 13, background: C.statusBg, color: C.statusText, whiteSpace: "nowrap" },
     pagination: { display: "flex", alignItems: "center", justifyContent: "center", gap: 12, paddingTop: 12, userSelect: "none" },
     navBtn: (disabled) => ({ border: "none", background: "transparent", fontSize: 13, color: disabled ? "rgba(100, 116, 139, 0.35)" : "#64748b", cursor: disabled ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: 10, fontWeight: 500 }),
     pageRow: { display: "flex", alignItems: "center", gap: 12 },

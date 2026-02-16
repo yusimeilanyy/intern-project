@@ -69,7 +69,7 @@ export default function NonPemdaContent() {
   const [showForm, setShowForm] = useState(false);
   const [editingMou, setEditingMou] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState(''); // ✅ Ganti documentTypeFilter dengan searchQuery
   const [previewModal, setPreviewModal] = useState({ isOpen: false, content: null, fileName: '' });
   const [loading, setLoading] = useState(true);
 
@@ -165,20 +165,25 @@ export default function NonPemdaContent() {
     }
   };
 
+  // ✅ PERBAIKAN: Filter dengan status + pencarian (hapus filter documentType)
   const filteredMoUs = Array.isArray(mous) ? mous.filter(mou => {
+    // Filter status
     if (statusFilter !== 'all' && mou.status !== statusFilter) return false;
 
-    if (documentTypeFilter !== 'all') {
-      const docType = (mou.documentType || '').toLowerCase().replace(/\s+/g, '');
-      const filterType = documentTypeFilter.toLowerCase().replace(/\s+/g, '');
-
-      if (filterType === 'mou' || filterType === 'memorandum') {
-        return docType.includes('mou') || docType.includes('memorandum');
-      }
-      if (filterType === 'pks' || filterType === 'perjanjiankerjasama' || filterType === 'perjanjian kerjasama') {
-        return docType.includes('pks') || docType.includes('perjanjian') && docType.includes('kerja');
-      }
-      return docType === filterType;
+    // Filter pencarian di semua field relevan
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase().trim();
+      return (
+        (mou.documentType || '').toLowerCase().includes(query) ||
+        (mou.institutionalLevel || '').toLowerCase().includes(query) ||
+        (mou.type || '').toLowerCase().includes(query) ||
+        (mou.bpsdmpPIC || '').toLowerCase().includes(query) ||
+        (mou.partnerPIC || '').toLowerCase().includes(query) ||
+        (mou.officeDocNumber || '').toLowerCase().includes(query) ||
+        (mou.partnerDocNumber || '').toLowerCase().includes(query) ||
+        (mou.notes || '').toLowerCase().includes(query) ||
+        (mou.status || '').toLowerCase().includes(query)
+      );
     }
 
     return true;
@@ -194,12 +199,6 @@ export default function NonPemdaContent() {
     "Review BPSDMP 2",
     "Persiapan TTD Para Pihak",
     "Selesai"
-  ];
-
-  const documentTypeOptions = [
-    { value: 'all', label: 'Semua Jenis Perjanjian' },
-    { value: 'MoU', label: 'MoU (Memorandum of Understanding)' },
-    { value: 'PKS', label: 'PKS (Perjanjian Kerja Sama)' }
   ];
 
   const getStatusColor = (status) => {
@@ -308,19 +307,9 @@ export default function NonPemdaContent() {
             <span className="font-medium">Riwayat Dokumen ({filteredMoUs.length})</span>
           </div>
 
+          {/* ✅ GANTI: Status Filter di KIRI, Pencarian di KANAN (ikon tidak overlap teks) */}
           <div className="flex items-center gap-3">
-            <select
-              value={documentTypeFilter}
-              onChange={(e) => setDocumentTypeFilter(e.target.value)}
-              className={filterSelectClass}
-            >
-              {documentTypeOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-
+            {/* Filter Status */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -331,6 +320,20 @@ export default function NonPemdaContent() {
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
+
+            {/* 🔍 PENCARIAN DI SEBELAH KANAN - STRUKTUR AMAN (ikon tidak overlap teks) */}
+<div className="relative">
+  <input
+    type="text"
+    placeholder="Cari dokumen..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="w-64 h-11 px-4 py-6 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm placeholder:text-gray-500"
+  />
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+</div>
           </div>
         </div>
 
@@ -343,19 +346,19 @@ export default function NonPemdaContent() {
           <div className="text-center py-12 flex flex-col items-center justify-center">
             <img src={FileIcon} className="h-12 w-12 mx-auto text-gray-300 mb-4" alt="File Icon" />
             <p className="text-gray-500">
-              {documentTypeFilter !== 'all' || statusFilter !== 'all'
-                ? 'Tidak ada dokumen sesuai filter yang dipilih'
+              {searchQuery.trim() !== '' || statusFilter !== 'all'
+                ? 'Tidak ada dokumen sesuai pencarian/filter yang dipilih'
                 : 'Belum ada catatan dokumen. Klik "Tambah Dokumen" untuk memulai.'}
             </p>
-            {(documentTypeFilter !== 'all' || statusFilter !== 'all') && (
+            {(searchQuery.trim() !== '' || statusFilter !== 'all') && (
               <button
                 onClick={() => {
-                  setDocumentTypeFilter('all');
                   setStatusFilter('all');
+                  setSearchQuery('');
                 }}
                 className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
               >
-                Reset Filter
+                Reset Pencarian & Filter
               </button>
             )}
           </div>
