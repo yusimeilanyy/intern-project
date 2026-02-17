@@ -284,7 +284,7 @@ export default function ExpiringStatsWidget() {
               }`}
               onClick={() => setActiveCategory('urgent')}
             >
-              <div className="text-xs font-medium">URGENT</div>
+              <div className="text-xs font-medium">MENDESAK</div>
               <div className="text-2xl font-bold">{stats.urgent.count}</div>
             </div>
             
@@ -326,7 +326,7 @@ export default function ExpiringStatsWidget() {
               <div className="p-4 bg-red-50">
                 <div className="flex items-center gap-2 mb-3">
                   <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
-                  <h4 className="font-bold text-red-800">⚠️ SANGAT URGENT (≤7 hari)</h4>
+                  <h4 className="font-bold text-red-800">SANGAT MENDESAK (≤7 hari)</h4>
                 </div>
                 
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -377,7 +377,7 @@ export default function ExpiringStatsWidget() {
               <div className="p-4 bg-yellow-50">
                 <div className="flex items-center gap-2 mb-3">
                   <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600" />
-                  <h4 className="font-bold text-yellow-800">⏳ PERINGATAN (8-14 hari)</h4>
+                  <h4 className="font-bold text-yellow-800">PERINGATAN (8-14 hari)</h4>
                 </div>
                 
                 <div className="space-y-2 max-h-64 overflow-y-auto">

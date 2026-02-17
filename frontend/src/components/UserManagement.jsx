@@ -390,6 +390,9 @@ export default function UserManagement({ isAdmin }) {
                 </div>
               </form>
             </div>
+
+            <div className="h-15"></div> {/* 4rem = 64px ruang kosong */}
+
           </div>
         </div>
       )}

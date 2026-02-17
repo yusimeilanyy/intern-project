@@ -335,6 +335,7 @@ const Dashboard = () => {
       <div style={{ height: '24px' }}></div> 
 
       <ChartContainer stats={stats} documents={documents} />
+      <div style={{ height: '50px' }}></div>
       
       {/* ✅ MODAL PERPANJANGAN */}
       {showRenewModal && selectedDoc && (

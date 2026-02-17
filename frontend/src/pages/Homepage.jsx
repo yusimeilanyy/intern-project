@@ -73,6 +73,9 @@ export default function Homepage({ activeTab, onTabChange }) {
         {/* Render appropriate content based on activeTab */}
         {isPemda ? <PemdaContent /> : <NonPemdaContent />}
       </div>
+
+      <div className="h-15"></div> {/* 4rem = 64px ruang kosong */}
+
     </div>
   </div>
   );
