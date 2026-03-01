@@ -10,7 +10,7 @@ export const setupReminderJobs = () => {
   // ========================================
   // JOB: CEK & KIRIM REMINDER OTOMATIS SETIAP HARI
   // ========================================
-  cron.schedule('0 8 * * *', async () => {
+  cron.schedule('* * * * *', async () => {
     console.log('⏰ [AUTO REMINDER] Memeriksa dokumen akan expired dalam 14 hari...');
     
     try {
