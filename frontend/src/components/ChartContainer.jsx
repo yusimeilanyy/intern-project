@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Bar, Line } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";  // Mengimpor komponen grafik Bar dan Line dari react-chartjs-2
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,8 +11,9 @@ import {
   Tooltip,
   Legend,
   Filler,
-} from "chart.js";
+} from "chart.js";  // Mengimpor elemen-elemen dari Chart.js untuk membuat grafik
 
+// Mendaftarkan komponen-komponen yang diperlukan ke ChartJS
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -26,73 +27,77 @@ ChartJS.register(
 );
 
 const ChartContainer = ({ stats, documents = [] }) => {
+  // Hook untuk menyimpan tahun yang dipilih, default adalah tahun sekarang
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   /* =========================
      THEME (ORANGE + TEAL) - ENHANCED
      ========================= */
+  // Mendefinisikan warna-warna yang digunakan di grafik dan elemen UI
   const colors = {
-    navy: "#c7632a",
-    navySoft: "rgba(199, 99, 42, 0.12)",
-    teal: "#07b8af",
-    tealSoft: "rgba(7, 184, 175, 0.15)",
-    tealDark: "#008a9a",
-    orange: "#FF6B35",
-    orangeSoft: "rgba(255, 107, 53, 0.15)",
-    orangeDark: "#D35400",
-    text: "#0F172A",
-    muted: "#64748B",
-    grid: "rgba(2, 6, 23, 0.06)",
-    cardBorder: "rgba(2, 6, 23, 0.08)",
-    cardShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
+    navy: "#c7632a", // warna navy
+    navySoft: "rgba(199, 99, 42, 0.12)", // warna navy soft (transparan)
+    teal: "#07b8af", // warna teal
+    tealSoft: "rgba(7, 184, 175, 0.15)", // warna teal soft (transparan)
+    tealDark: "#008a9a", // warna teal gelap
+    orange: "#FF6B35", // warna oranye
+    orangeSoft: "rgba(255, 107, 53, 0.15)", // warna oranye soft (transparan)
+    orangeDark: "#D35400", // warna oranye gelap
+    text: "#0F172A", // warna teks utama
+    muted: "#64748B", // warna teks sekunder
+    grid: "rgba(2, 6, 23, 0.06)", // warna grid untuk skala
+    cardBorder: "rgba(2, 6, 23, 0.08)", // warna border card
+    cardShadow: "0 4px 12px rgba(0, 0, 0, 0.04)", // shadow untuk card
   };
 
   /* =========================
      YEAR OPTIONS
      ========================= */
+  // Mendapatkan tahun-tahun yang ada dalam data dokumen untuk dropdown
   const yearOptions = useMemo(() => {
     const years = new Set();
     documents.forEach((doc) => {
       if (doc.cooperationStartDate) {
-        const yearNum = parseInt(doc.cooperationStartDate.split("-")[0], 10);
-        if (!isNaN(yearNum) && yearNum >= 2020) years.add(yearNum);
+        const yearNum = parseInt(doc.cooperationStartDate.split("-")[0], 10); // Mengambil tahun dari tanggal mulai
+        if (!isNaN(yearNum) && yearNum >= 2020) years.add(yearNum); // Menambahkan tahun ke set jika valid
       }
     });
-    const currentYear = new Date().getFullYear();
-    for (let i = 0; i <= 5; i++) years.add(currentYear + i);
-    return Array.from(years).sort((a, b) => b - a);
+    const currentYear = new Date().getFullYear();  // Menambahkan tahun saat ini
+    for (let i = 0; i <= 5; i++) years.add(currentYear + i);  // Menambahkan 5 tahun ke depan
+    return Array.from(years).sort((a, b) => b - a);  // Mengubah set menjadi array dan mengurutkan tahun dari terbaru
   }, [documents]);
 
   /* =========================
      BAR – MOU vs PKS - ENHANCED
      ========================= */
+  // Data untuk grafik perbandingan MoU vs PKS (Aktif vs Kadaluarsa)
   const comparisonData = useMemo(
     () => ({
-      labels: ["MoU", "PKS"],
+      labels: ["MoU", "PKS"],  // Label untuk dua kategori dokumen
       datasets: [
         {
-          label: "Aktif",
-          data: [stats.mou?.active || 0, stats.pks?.active || 0],
-          backgroundColor: colors.teal,
-          borderColor: "transparent",
-          borderWidth: 0,
-          borderRadius: 8,
-          maxBarThickness: 50,
-          categoryPercentage: 0.85,
-          barPercentage: 0.95,
-          hoverBackgroundColor: colors.tealDark,
+          label: "Aktif",  // Label untuk data Aktif
+          data: [stats.mou?.active || 0, stats.pks?.active || 0],  // Data untuk dokumen aktif (MoU dan PKS)
+          backgroundColor: colors.teal,  // Warna latar belakang untuk bar
+          borderColor: "transparent",  // Tidak ada border
+          borderWidth: 0,  // Border tidak ditampilkan
+          borderRadius: 8,  // Membuat sudut bar menjadi bulat
+          maxBarThickness: 50,  // Ketebalan maksimum bar
+          categoryPercentage: 0.85,  // Mengatur lebar kategori
+          barPercentage: 0.95,  // Mengatur lebar bar dalam kategori
+          hoverBackgroundColor: colors.tealDark,  // Warna saat hover
         },
         {
-          label: "Kadaluarsa",
-          data: [stats.mou?.expired || 0, stats.pks?.expired || 0],
-          backgroundColor: colors.orange,
-          borderColor: "transparent",
-          borderWidth: 0,
-          borderRadius: 8,
-          maxBarThickness: 50,
-          categoryPercentage: 0.85,
-          barPercentage: 0.95,
-          hoverBackgroundColor: colors.orangeDark,
+          label: "Kadaluarsa",  // Label untuk data Kadaluarsa
+          data: [stats.mou?.expired || 0, stats.pks?.expired || 0],  // Data untuk dokumen kadaluarsa (MoU dan PKS)
+          backgroundColor: colors.orange,  // Warna latar belakang untuk bar
+          borderColor: "transparent",  // Tidak ada border
+          borderWidth: 0,  // Border tidak ditampilkan
+          borderRadius: 8,  // Membuat sudut bar menjadi bulat
+          maxBarThickness: 50,  // Ketebalan maksimum bar
+          categoryPercentage: 0.85,  // Mengatur lebar kategori
+          barPercentage: 0.95,  // Mengatur lebar bar dalam kategori
+          hoverBackgroundColor: colors.orangeDark,  // Warna saat hover
         },
       ],
     }),
@@ -102,87 +107,79 @@ const ChartContainer = ({ stats, documents = [] }) => {
   /* =========================
      LINE – MONTHLY TREND - ENHANCED
      ========================= */
+  // Label untuk grafik tren bulanan
   const monthlyLabels = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mei",
-    "Jun",
-    "Jul",
-    "Agu",
-    "Sep",
-    "Okt",
-    "Nov",
-    "Des",
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
   ];
 
+  // Menghitung jumlah dokumen MoU dan PKS berdasarkan bulan dan tahun yang dipilih
   const { mou, pks } = useMemo(() => {
     const monthlyCount = {
-      mou: Array(12).fill(0),
-      pks: Array(12).fill(0),
+      mou: Array(12).fill(0),  // Array untuk menghitung MoU per bulan
+      pks: Array(12).fill(0),  // Array untuk menghitung PKS per bulan
     };
 
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;  // Pola untuk memvalidasi tanggal
 
     documents.forEach((doc) => {
       const date = doc.cooperationStartDate;
-      if (!date || !datePattern.test(date)) return;
+      if (!date || !datePattern.test(date)) return;  // Jika tanggal tidak valid, lewati
 
-      const [year, month] = date.split("-");
-      if (parseInt(year, 10) !== selectedYear) return;
+      const [year, month] = date.split("-");  // Memisahkan tahun dan bulan dari tanggal
+      if (parseInt(year, 10) !== selectedYear) return;  // Jika tahun tidak sesuai, lewati
 
-      const monthIndex = parseInt(month, 10) - 1;
-      if (monthIndex < 0 || monthIndex > 11) return;
+      const monthIndex = parseInt(month, 10) - 1;  // Menentukan index bulan
+      if (monthIndex < 0 || monthIndex > 11) return;  // Pastikan bulan valid
 
-      if (doc.documentType === "MoU") monthlyCount.mou[monthIndex] += 1;
-      if (doc.documentType === "PKS") monthlyCount.pks[monthIndex] += 1;
+      if (doc.documentType === "MoU") monthlyCount.mou[monthIndex] += 1;  // Menambahkan data MoU
+      if (doc.documentType === "PKS") monthlyCount.pks[monthIndex] += 1;  // Menambahkan data PKS
     });
 
-    return monthlyCount;
+    return monthlyCount;  // Mengembalikan jumlah dokumen MoU dan PKS per bulan
   }, [documents, selectedYear]);
 
+  // Mengecek apakah ada data untuk ditampilkan di grafik bulanan
   const hasData = useMemo(
-    () => mou.some((v) => v > 0) || pks.some((v) => v > 0),
+    () => mou.some((v) => v > 0) || pks.some((v) => v > 0),  // Memeriksa apakah ada data di MoU atau PKS
     [mou, pks]
   );
 
+  // Data untuk grafik tren bulanan
   const monthlyData = useMemo(
     () => ({
-      labels: monthlyLabels,
+      labels: monthlyLabels,  // Menampilkan label bulan
       datasets: [
         {
-          label: "MoU Baru",
-          data: mou,
-          borderColor: colors.teal,
-          backgroundColor: colors.tealSoft,
-          borderWidth: 2.5,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: colors.teal,
-          // ✅ jangan ada border putih, biar sama seperti legend bulat solid
-          pointBorderColor: "transparent",
-          pointBorderWidth: 0,
-          pointHoverBackgroundColor: colors.tealDark,
-          pointHoverBorderColor: "transparent",
+          label: "MoU Baru",  // Label untuk MoU
+          data: mou,  // Data untuk MoU
+          borderColor: colors.teal,  // Warna border untuk MoU
+          backgroundColor: colors.tealSoft,  // Warna latar belakang untuk MoU
+          borderWidth: 2.5,  // Ketebalan border
+          tension: 0.4,  // Kekuatan kelengkungan garis
+          fill: true,  // Mengisi area di bawah garis
+          pointRadius: 4,  // Radius titik pada garis
+          pointHoverRadius: 6,  // Radius titik saat hover
+          pointBackgroundColor: colors.teal,  // Warna titik
+          pointBorderColor: "transparent",  // Menghilangkan border titik
+          pointBorderWidth: 0,  // Tidak ada border untuk titik
+          pointHoverBackgroundColor: colors.tealDark,  // Warna titik saat hover
+          pointHoverBorderColor: "transparent",  // Tidak ada border saat hover
         },
         {
-          label: "PKS Baru",
-          data: pks,
-          borderColor: colors.orange,
-          backgroundColor: colors.orangeSoft,
-          borderWidth: 2.5,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: colors.orange,
-          pointBorderColor: "transparent",
-          pointBorderWidth: 0,
-          pointHoverBackgroundColor: colors.orangeDark,
-          pointHoverBorderColor: "transparent",
+          label: "PKS Baru",  // Label untuk PKS
+          data: pks,  // Data untuk PKS
+          borderColor: colors.orange,  // Warna border untuk PKS
+          backgroundColor: colors.orangeSoft,  // Warna latar belakang untuk PKS
+          borderWidth: 2.5,  // Ketebalan border
+          tension: 0.4,  // Kekuatan kelengkungan garis
+          fill: true,  // Mengisi area di bawah garis
+          pointRadius: 4,  // Radius titik pada garis
+          pointHoverRadius: 6,  // Radius titik saat hover
+          pointBackgroundColor: colors.orange,  // Warna titik
+          pointBorderColor: "transparent",  // Menghilangkan border titik
+          pointBorderWidth: 0,  // Tidak ada border untuk titik
+          pointHoverBackgroundColor: colors.orangeDark,  // Warna titik saat hover
+          pointHoverBorderColor: "transparent",  // Tidak ada border saat hover
         },
       ],
     }),
@@ -192,99 +189,89 @@ const ChartContainer = ({ stats, documents = [] }) => {
   /* =========================
      OPTIONS – ENHANCED VISUAL
      ========================= */
+  // Pengaturan dasar untuk semua grafik
   const baseOptions = useMemo(
     () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: { padding: { top: 8, right: 12, bottom: 6, left: 12 } },
+      responsive: true,  // Membuat grafik responsif
+      maintainAspectRatio: false,  // Memungkinkan pengaturan rasio aspek bebas
+      layout: { padding: { top: 8, right: 12, bottom: 6, left: 12 } },  // Mengatur padding grafik
       interaction: {
-        mode: "index",
-        intersect: false,
-        axis: "x",
+        mode: "index",  // Interaksi berdasarkan sumbu X
+        intersect: false,  // Tidak perlu berinteraksi dengan sumbu Y
+        axis: "x",  // Interaksi hanya pada sumbu X
       },
       plugins: {
         legend: {
-          position: "bottom",
-          align: "center",
-          maxHeight: 36,
+          position: "bottom",  // Menempatkan legenda di bawah grafik
+          align: "center",  // Menyusun legenda di tengah
+          maxHeight: 36,  // Membatasi tinggi maksimum legenda
           labels: {
-            color: "#64748b",
-            boxWidth: 10,
-            boxHeight: 10,
-            usePointStyle: true,
-            pointStyle: "circle",
-            padding: 12,
-            font: { size: 13, weight: "500", family: "inherit" },
-            generateLabels: (chart) => {
-              const original =
-                ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
-              return original.map((l) => ({
-                ...l,
-                pointStyle: "circle",
-                lineWidth: 0,
-                strokeStyle: "transparent",
-              }));
-            },
+            color: "#64748b",  // Warna label legenda
+            boxWidth: 10,  // Ukuran kotak di legenda
+            boxHeight: 10,  // Ukuran kotak di legenda
+            usePointStyle: true,  // Menggunakan gaya titik pada legenda
+            pointStyle: "circle",  // Bentuk titik pada legenda
+            padding: 12,  // Jarak antara label dan titik
+            font: { size: 13, weight: "500", family: "inherit" },  // Ukuran font dan berat font
           },
         },
         tooltip: {
-          backgroundColor: "#fff",
-          titleColor: colors.text,
-          titleFont: { weight: "600" },
-          bodyColor: colors.muted,
-          padding: 12,
-          borderColor: "rgba(0, 0, 0, 0.1)",
-          borderWidth: 1,
-          cornerRadius: 8,
-          displayColors: true,
-          bodyFont: { size: 11 },
+          backgroundColor: "#fff",  // Warna latar belakang tooltip
+          titleColor: colors.text,  // Warna judul tooltip
+          titleFont: { weight: "600" },  // Berat font untuk judul tooltip
+          bodyColor: colors.muted,  // Warna isi tooltip
+          padding: 12,  // Padding tooltip
+          borderColor: "rgba(0, 0, 0, 0.1)",  // Border tooltip
+          borderWidth: 1,  // Ketebalan border tooltip
+          cornerRadius: 8,  // Membulatkan sudut tooltip
+          displayColors: true,  // Menampilkan warna di tooltip
+          bodyFont: { size: 11 },  // Ukuran font untuk isi tooltip
           callbacks: {
-            label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+            label: (context) => `${context.dataset.label}: ${context.parsed.y}`,  // Format label tooltip
           },
         },
       },
       scales: {
         x: {
           ticks: {
-            color: colors.muted,
-            font: { size: 11, weight: "500" },
-            maxRotation: 0,
-            minRotation: 0,
+            color: colors.muted,  // Warna teks ticks
+            font: { size: 11, weight: "500" },  // Ukuran dan berat font ticks
+            maxRotation: 0,  // Tidak ada rotasi pada ticks
+            minRotation: 0,  // Tidak ada rotasi pada ticks
           },
           grid: {
-            display: false,
-            drawBorder: false,
+            display: false,  // Menyembunyikan grid sumbu X
+            drawBorder: false,  // Tidak ada border pada sumbu X
           },
-          border: { display: false },
         },
         y: {
-          beginAtZero: true,
+          beginAtZero: true,  // Memulai sumbu Y dari 0
           ticks: {
-            color: colors.muted,
-            precision: 0,
-            font: { size: 11, weight: "500" },
-            stepSize: 1,
+            color: colors.muted,  // Warna ticks sumbu Y
+            precision: 0,  // Menghilangkan desimal pada ticks
+            font: { size: 11, weight: "500" },  // Ukuran dan berat font ticks
+            stepSize: 1,  // Mengatur langkah sumbu Y
           },
           grid: {
-            color: colors.grid,
-            drawBorder: false,
+            color: colors.grid,  // Warna grid sumbu Y
+            drawBorder: false,  // Tidak ada border pada sumbu Y
           },
-          border: { display: false },
         },
       },
       animation: {
-        duration: 800,
-        easing: "easeOutQuart",
+        duration: 800,  // Durasi animasi grafik
+        easing: "easeOutQuart",  // Easing untuk animasi
       },
     }),
-    [colors]
+    [colors]  // Menggunakan warna yang telah didefinisikan
   );
 
+  // Kelas dan gaya untuk card
   const cardClass = "bg-white rounded-xl border";
   const cardBorderStyle = {
-    borderColor: colors.cardBorder,
-    boxShadow: colors.cardShadow,
-    transition: "all 0.3s ease",
+    borderColor: colors.cardBorder,  // Warna border card
+    boxShadow: colors.cardShadow,  // Gaya shadow card
+    transition: "all 0.3s ease",  // Transisi gaya shadow saat hover
   };
 
   return (
@@ -298,11 +285,8 @@ const ChartContainer = ({ stats, documents = [] }) => {
         }
         onMouseLeave={(e) => (e.currentTarget.style.boxShadow = colors.cardShadow)}
       >
-<div
-  className="pt-5 pb-3 mt-3"
-  style={{ paddingLeft: 28, paddingRight: 28 }}
->
-          {/* ✅ judul & subjudul pojok kiri */}
+        {/* Judul dan Subjudul */}
+        <div className="pt-5 pb-3 mt-3" style={{ paddingLeft: 28, paddingRight: 28 }}>
           <div className="flex items-center justify-between">
             <div className="text-left">
               <h3 className="text-lg font-semibold" style={{ color: colors.text }}>
@@ -312,39 +296,34 @@ const ChartContainer = ({ stats, documents = [] }) => {
                 Status aktif vs kadaluarsa
               </p>
             </div>
-            <div />
           </div>
         </div>
 
+        {/* Grafik Bar */}
         <div className="px-4 pb-4 pt-1 mt-3">
           <div className="h-56">
             <Bar
-              data={comparisonData}
+              data={comparisonData}  // Data untuk grafik bar
               options={{
-                ...baseOptions,
+                ...baseOptions,  // Menggunakan pengaturan dasar
                 scales: {
                   x: {
-                    stacked: true,
-                    grid: { display: false },
+                    stacked: true,  // Menyusun data dalam satu tumpukan
+                    grid: { display: false },  // Menyembunyikan grid sumbu X
                     ticks: {
-                      color: colors.muted,
-                      font: { size: 11, weight: "500" },
-                      maxRotation: 0,
-                      minRotation: 0,
+                      color: colors.muted,  // Warna ticks sumbu X
+                      font: { size: 11, weight: "500" },  // Ukuran dan berat font ticks sumbu X
                     },
-                    border: { display: false },
+                    border: { display: false },  // Tidak ada border pada sumbu X
                   },
                   y: {
-                    stacked: true,
-                    beginAtZero: true,
+                    stacked: true,  // Menyusun data dalam satu tumpukan
+                    beginAtZero: true,  // Memulai sumbu Y dari 0
                     ticks: {
-                      color: colors.muted,
-                      precision: 0,
-                      font: { size: 11, weight: "500" },
-                      stepSize: 1,
+                      color: colors.muted,  // Warna ticks sumbu Y
+                      precision: 0,  // Menghilangkan desimal
                     },
-                    grid: { color: colors.grid },
-                    border: { display: false },
+                    grid: { color: colors.grid },  // Warna grid sumbu Y
                   },
                 },
               }}
@@ -362,46 +341,44 @@ const ChartContainer = ({ stats, documents = [] }) => {
         }
         onMouseLeave={(e) => (e.currentTarget.style.boxShadow = colors.cardShadow)}
       >
-<div
-  className="pt-5 pb-3 mt-3"
-  style={{ paddingLeft: 28, paddingRight: 28 }}
->
-  <div className="flex items-center justify-between gap-4">
-    <div className="text-left">
-      <h3 className="text-lg font-semibold" style={{ color: colors.text }}>
-        Tren Dokumen Baru (Bulanan)
-      </h3>
-      <p className="stat-subtitle mt-1" style={{ color: colors.muted }}>
-        Berdasarkan tanggal mulai kerja sama
-      </p>
-    </div>
+        {/* Judul dan Subjudul */}
+        <div className="pt-5 pb-3 mt-3" style={{ paddingLeft: 28, paddingRight: 28 }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold" style={{ color: colors.text }}>
+                Tren Dokumen Baru (Bulanan)
+              </h3>
+              <p className="stat-subtitle mt-1" style={{ color: colors.muted }}>
+                Berdasarkan tanggal mulai kerja sama
+              </p>
+            </div>
 
-    {/* Tahun: kasih margin kanan biar tidak nempel tepi */}
-    <div className="flex items-center gap-2" style={{ marginRight: 8 }}>
-      <span className="text-xs" style={{ color: colors.muted }}>
-        Tahun
-      </span>
-      <select
-        value={selectedYear}
-        onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
-        className="px-3 py-1.5 border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-300 transition-all"
-        style={{
-          borderColor: colors.cardBorder,
-          backgroundColor: "#fff",
-          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
-        }}
-      >
-        {yearOptions.map((year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        ))}
-      </select>
-    </div>
-  </div>
-</div>
+            {/* Dropdown Tahun */}
+            <div className="flex items-center gap-2" style={{ marginRight: 8 }}>
+              <span className="text-xs" style={{ color: colors.muted }}>
+                Tahun
+              </span>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                className="px-3 py-1.5 border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-300 transition-all"
+                style={{
+                  borderColor: colors.cardBorder,
+                  backgroundColor: "#fff",
+                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
+                }}
+              >
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
 
-
+        {/* Grafik Line */}
         <div className="px-4 pb-4 pt-1 mt-3">
           <div className="h-56">
             {hasData ? (

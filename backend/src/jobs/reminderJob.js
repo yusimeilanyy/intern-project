@@ -136,8 +136,8 @@ export const setupReminderJobs = () => {
     }
   });
 
-  console.log('✅ [AUTO REMINDER] Scheduler aktif:');
+  console.log('   [AUTO REMINDER] Scheduler aktif:');
   console.log('   • Setiap hari jam 08:00 WIB');
   console.log('   • Cek dokumen akan expired dalam 1-14 hari');
-  console.log('   • Kirim email ke PIC + Manager otomatis');
+  console.log('   • Kirim email ke PIC otomatis');
 };

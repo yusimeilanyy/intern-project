@@ -84,23 +84,37 @@ export const getDashboardData = async (req, res) => {
     const totalMou = documents.filter((d) => d.documentType === "MoU").length;
     const totalPks = documents.filter((d) => d.documentType === "PKS").length;
 
-    // 4. Hitung aktif/kadaluarsa berdasarkan tanggal
-    const now = new Date();
-    const activeMou = documents.filter(
-      (d) => d.documentType === "MoU" && d.cooperationEndDate !== "-" && new Date(d.cooperationEndDate) > now
-    ).length;
+    // 4. Hitung aktif/kadaluarsa berdasarkan tanggal (NORMALISASI WAKTU)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const expiredMou = documents.filter(
-      (d) => d.documentType === "MoU" && d.cooperationEndDate !== "-" && new Date(d.cooperationEndDate) <= now
-    ).length;
+    const activeMou = documents.filter((d) => {
+      if (d.documentType !== "MoU" || d.cooperationEndDate === "-") return false;
+      const endDate = new Date(d.cooperationEndDate);
+      endDate.setHours(0, 0, 0, 0);
+      return endDate > today;
+    }).length;
 
-    const activePks = documents.filter(
-      (d) => d.documentType === "PKS" && d.cooperationEndDate !== "-" && new Date(d.cooperationEndDate) > now
-    ).length;
+    const expiredMou = documents.filter((d) => {
+      if (d.documentType !== "MoU" || d.cooperationEndDate === "-") return false;
+      const endDate = new Date(d.cooperationEndDate);
+      endDate.setHours(0, 0, 0, 0);
+      return endDate <= today;
+    }).length;
 
-    const expiredPks = documents.filter(
-      (d) => d.documentType === "PKS" && d.cooperationEndDate !== "-" && new Date(d.cooperationEndDate) <= now
-    ).length;
+    const activePks = documents.filter((d) => {
+      if (d.documentType !== "PKS" || d.cooperationEndDate === "-") return false;
+      const endDate = new Date(d.cooperationEndDate);
+      endDate.setHours(0, 0, 0, 0);
+      return endDate > today;
+    }).length;
+
+    const expiredPks = documents.filter((d) => {
+      if (d.documentType !== "PKS" || d.cooperationEndDate === "-") return false;
+      const endDate = new Date(d.cooperationEndDate);
+      endDate.setHours(0, 0, 0, 0);
+      return endDate <= today;
+    }).length;
 
     const activeCount = activeMou + activePks;
     const expiredCount = expiredMou + expiredPks;
@@ -119,7 +133,7 @@ export const getDashboardData = async (req, res) => {
         active: activePks,
         expired: expiredPks,
       },
-      documents, // ✅ Kirim semua dokumen dengan field lengkap
+      documents,
     };
 
     console.log("✅ Dashboard data:", {
@@ -203,7 +217,6 @@ export const getAllMous = async (req, res) => {
         console.error(`Error parsing payload for doc ${doc.id}:`, e);
       }
 
-      // ✅ Ekstrak semua field dari payload ke root objek
       return {
         id: doc.id,
         category: doc.category,
@@ -220,11 +233,8 @@ export const getAllMous = async (req, res) => {
         cooperationStartDate: payload.cooperationStartDate || "-",
         cooperationEndDate: payload.cooperationEndDate || "-",
         status: payload.status || "Baru",
-
-        // ✅ TAMBAHAN: status proses terakhir
         subStatus: payload.subStatus || payload.statusAkhir || "",
         statusAkhir: payload.statusAkhir || payload.subStatus || "",
-
         finalDocumentName: payload.finalDocumentName || "",
         finalDocumentUrl: payload.finalDocumentUrl || "",
         created_at: doc.created_at,
@@ -247,7 +257,6 @@ export const getMouById = async (req, res) => {
       return res.status(404).json({ message: "MoU tidak ditemukan" });
     }
 
-    // Parse payload
     let payload = {};
     try {
       payload = typeof rows[0].payload === "string" ? JSON.parse(rows[0].payload) : rows[0].payload;
@@ -272,12 +281,10 @@ export const createMou = async (req, res) => {
 
     console.log("📝 Creating MoU:", { category, payload });
 
-    // Pastikan category dan payload ada
     if (!category || !payload) {
       return res.status(400).json({ message: "Category dan payload wajib diisi" });
     }
 
-    // Parsing payload jika perlu
     let parsedPayload = {};
     try {
       parsedPayload = typeof payload === "string" ? JSON.parse(payload) : payload;
@@ -285,12 +292,10 @@ export const createMou = async (req, res) => {
       return res.status(400).json({ message: "Payload tidak valid" });
     }
 
-    // Pastikan documentType ada di payload
     if (!parsedPayload.documentType) {
-      parsedPayload.documentType = category === "pks" ? "PKS" : "MoU"; // Default ke MoU jika tidak ada
+      parsedPayload.documentType = category === "pks" ? "PKS" : "MoU";
     }
 
-    // Menghandle file upload jika ada
     if (req.file) {
       const fileUrl = `/uploads/${req.file.filename}`;
       parsedPayload.finalDocumentUrl = fileUrl;
@@ -298,7 +303,6 @@ export const createMou = async (req, res) => {
       console.log("📎 File uploaded:", fileUrl);
     }
 
-    // Menyimpan ke database
     const [result] = await pool.query(
       "INSERT INTO mous (category, payload, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
       [category, JSON.stringify(parsedPayload)]
@@ -306,7 +310,6 @@ export const createMou = async (req, res) => {
 
     console.log("✅ MoU created with ID:", result.insertId);
 
-    // Kembalikan data
     res.status(201).json({
       message: "MoU berhasil ditambahkan",
       id: result.insertId,
@@ -326,7 +329,6 @@ export const updateMou = async (req, res) => {
 
     console.log("✏️ Updating MoU ID:", id, "Category:", category);
 
-    // Parsing payload jika perlu
     let parsedPayload = {};
     try {
       parsedPayload = typeof payload === "string" ? JSON.parse(payload) : payload;
@@ -334,12 +336,10 @@ export const updateMou = async (req, res) => {
       return res.status(400).json({ message: "Payload tidak valid" });
     }
 
-    // Pastikan documentType ada di payload
     if (!parsedPayload.documentType) {
-      parsedPayload.documentType = category === "pks" ? "PKS" : "MoU"; // Default ke MoU jika tidak ada
+      parsedPayload.documentType = category === "pks" ? "PKS" : "MoU";
     }
 
-    // Menghandle file upload baru jika ada
     if (req.file) {
       const fileUrl = `/uploads/${req.file.filename}`;
       parsedPayload.finalDocumentUrl = fileUrl;
@@ -347,7 +347,6 @@ export const updateMou = async (req, res) => {
       console.log("📎 New file uploaded:", fileUrl);
     }
 
-    // Menyimpan update ke database
     const [result] = await pool.query("UPDATE mous SET category = ?, payload = ?, updated_at = NOW() WHERE id = ?", [
       category,
       JSON.stringify(parsedPayload),
@@ -360,7 +359,6 @@ export const updateMou = async (req, res) => {
 
     console.log("✅ MoU updated successfully");
 
-    // Kembalikan data setelah update
     res.json({
       message: "MoU berhasil diupdate",
       id: parseInt(id),
@@ -379,14 +377,12 @@ export const deleteMou = async (req, res) => {
 
     console.log("🗑️ Deleting MoU ID:", id);
 
-    // Get file info before deleting
     const [rows] = await pool.query("SELECT payload FROM mous WHERE id = ?", [id]);
 
     if (rows[0]) {
       try {
         const payload = typeof rows[0].payload === "string" ? JSON.parse(rows[0].payload) : rows[0].payload;
 
-        // Delete file if exists
         if (payload.finalDocumentUrl && payload.finalDocumentUrl.startsWith("/uploads/")) {
           const filePath = path.join(__dirname, "../public", payload.finalDocumentUrl);
           if (fs.existsSync(filePath)) {

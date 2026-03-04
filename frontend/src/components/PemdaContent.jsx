@@ -430,7 +430,7 @@ export default function PemdaContent() {
                   <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Perjanjian</th>
                   <th className="px-4 py-3 text-center font-semibold">Tingkat <br /> Kerja Sama</th>
                   <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Dokumen</th>
-                  <th className="px-4 py-3 text-center font-semibold">PIC BPSDMP</th>
+                  <th className="px-4 py-3 text-center font-semibold">PIC <br /> BPSDMP</th>
                   <th className="px-4 py-3 text-center font-semibold">PIC <br /> PEMDA</th>
                   <th className="px-4 py-3 text-center font-semibold">Tanggal <br /> Mulai</th>
                   <th className="px-4 py-3 text-center font-semibold">Tanggal <br /> Berakhir</th>
@@ -872,7 +872,7 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
 
             {/* PIC BPSDMP */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">PIC BPSDMP Kominfo Manado</label>
+              <label className="block text-sm font-medium text-gray-700">PIC BLSDM Komdigi Manado</label>
               <input
                 type="text"
                 name="bpsdmpPIC"
@@ -1008,7 +1008,7 @@ function PemdaFormModal({ initialData, onSubmit, onCancel }) {
                            hover:file:bg-gray-200"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Format file yang diizinkan : PDF dan Word (.doc/.docx)<br />
+                Format file yang diizinkan : PDF atau .doc/.docx<br />
                 Maksimal ukuran file : 10 MB
               </p>
             </div>

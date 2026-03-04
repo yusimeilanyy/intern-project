@@ -718,7 +718,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">PIC BPSDMP Kominfo Manado</label>
+              <label className="block text-sm font-medium text-gray-700">PIC BLSDM Komdigi Manado</label>
               <input
                 type="text"
                 name="bpsdmpPIC"
@@ -848,7 +848,7 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
                            hover:file:bg-gray-200"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Format file yang diizinkan : PDF dan Word (.doc/.docx)<br />
+                Format file yang diizinkan : PDF atau .doc/.docx<br />
                 Maksimal ukuran file : 10 MB
               </p>
             </div>
