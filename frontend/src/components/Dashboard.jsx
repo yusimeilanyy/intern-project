@@ -376,7 +376,7 @@ const Dashboard = () => {
           <StatCard 
             title="Dokumen Kadaluarsa" 
             value={stats.expiredCount} // Total expired dari state
-            subtitle={`${stats.expiredCount} dari ${stats.totalMou + stats.totalPks} dokumen`} 
+            subtitle={`${stats.expiredCount} kadaluarsa dari ${stats.totalMou + stats.totalPks} dokumen`} 
             icon="fa-exclamation-circle" 
             color="danger" 
           />

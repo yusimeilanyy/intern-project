@@ -1,6 +1,6 @@
 // src/db.js
 import mysql from 'mysql2/promise';
-import 'dotenv/config'; // Pastikan dotenv sudah diinstall
+import 'dotenv/config'; 
 
 // Buat pool koneksi
 const pool = mysql.createPool({

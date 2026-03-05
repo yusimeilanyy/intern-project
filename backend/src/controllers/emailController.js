@@ -59,7 +59,7 @@ export const sendToPIC = async (doc, daysRemaining) => {
       return { success: false, message: 'No PIC email' };
     }
 
-    const urgency = daysRemaining <= 7 ? '⚠️ SANGAT URGENT' : 
+    const urgency = daysRemaining <= 7 ? '⚠️ SANGAT MENDESAK' : 
                     daysRemaining <= 10 ? '⏳ MENDESAK' : '📅 Perlu Perhatian';
     
     const urgencyColor = daysRemaining <= 7 ? '#ef4444' : 
@@ -91,7 +91,7 @@ export const sendToPIC = async (doc, daysRemaining) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🔔 NOTIFIKASI KHUSUS PIC</h1>
+              <h1>NOTIFIKASI KHUSUS PIC</h1>
               <p>${urgency}</p>
             </div>
             
@@ -101,19 +101,19 @@ export const sendToPIC = async (doc, daysRemaining) => {
               <p>Anda menerima email ini karena Anda adalah <strong>PIC</strong> untuk dokumen berikut yang akan <strong>expired dalam ${daysRemaining} hari</strong>:</p>
               
               <div class="info-box">
-                <p><strong>📋 Jenis Dokumen:</strong> ${doc.type}</p>
-                <p><strong>🏢 Mitra:</strong> ${doc.institution}</p>
-                <p><strong>📅 Periode:</strong> ${startDate} → ${endDate}</p>
-                <p><strong>⏳ Sisa Waktu:</strong> <strong style="color: ${urgencyColor};">${daysRemaining} hari</strong></p>
+                <p><strong>📋 Jenis Dokumen :</strong> ${doc.type}</p>
+                <p><strong>🏢 Mitra :</strong> ${doc.institution}</p>
+                <p><strong>📅 Periode :</strong> ${startDate} → ${endDate}</p>
+                <p><strong>⏳ Sisa Waktu :</strong> <strong style="color: ${urgencyColor};">${daysRemaining} hari</strong></p>
               </div>
 
-              <h3>📝 Tindakan yang Harus Dilakukan:</h3>
-              <ol>
-                <li><strong>Segera konfirmasi</strong> dengan mitra apakah kerja sama akan diperpanjang</li>
-                <li><strong>Siapkan draft perpanjangan</strong> jika diperlukan</li>
-                <li><strong>Jadwalkan pertemuan</strong> dengan mitra untuk membahas perpanjangan</li>
-                <li><strong>Proses perpanjangan</strong> minimal <strong>7 hari sebelum expired</strong></li>
-              </ol>
+              <h3>📝 Tindakan yang Harus Dilakukan :</h3>
+                <ol>
+                  <li><strong>Koordinasi dengan mitra</strong> untuk memastikan kelanjutan kerja sama</li>
+                  <li><strong>Siapkan dokumen pendukung</strong> yang diperlukan untuk proses perpanjangan</li>
+                  <li><strong>Pantau masa berlaku</strong> dokumen hingga tanggal berakhir</li>
+                  <li><strong>Lakukan perpanjangan</strong> melalui dashboard <strong>setelah dokumen expired</strong> dengan klik tombol "Perpanjang"</li>
+                </ol>
 
               <div style="text-align: center;">
                 <a href="${process.env.FRONTEND_URL}/dashboard" class="btn">
@@ -124,7 +124,6 @@ export const sendToPIC = async (doc, daysRemaining) => {
               <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0; background: #fffbeb; padding: 15px; border-radius: 8px;">
                 <p><strong>ℹ️ Catatan:</strong></p>
                 <ul>
-                  <li>Email ini juga dikirim ke admin untuk monitoring</li>
                   <li>Jika Anda sudah memproses perpanjangan, abaikan email ini</li>
                   <li>Untuk bantuan, hubungi admin sistem</li>
                 </ul>
@@ -132,8 +131,8 @@ export const sendToPIC = async (doc, daysRemaining) => {
             </div>
             
             <div class="footer">
-              <p>Dikirim oleh Sistem Manajemen MoU/PKS</p>
-              <p>BPSDMP Kominfo Manado</p>
+              <p>Dikirim oleh SIKERMA</p>
+              <p>BLSDM Komdigi Manado</p>
             </div>
           </div>
         </body>
