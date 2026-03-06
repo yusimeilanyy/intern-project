@@ -13,6 +13,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4001;
 
+// Set trust proxy untuk menangani header X-Forwarded-For (digunakan oleh Ngrok)
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

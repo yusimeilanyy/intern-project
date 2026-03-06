@@ -14,10 +14,10 @@ export const getDashboardData = async (req, res) => {
   try {
     console.log("📊 Fetching dashboard data...");
 
-    // 1. Ambil SEMUA dokumen dengan detail lengkap
+    // Ambil SEMUA dokumen dengan detail lengkap
     const [allDocs] = await pool.query(`
       SELECT 
-        id,
+        id, 
         category,
         payload,
         created_at,
@@ -26,7 +26,7 @@ export const getDashboardData = async (req, res) => {
       ORDER BY created_at DESC
     `);
 
-    // 2. Parse semua dokumen dan ekstrak field penting
+    // Parse semua dokumen dan ekstrak field penting
     const documents = allDocs.map((doc) => {
       let payload = {};
       try {
@@ -44,14 +44,11 @@ export const getDashboardData = async (req, res) => {
         id: doc.id,
         category: doc.category,
 
-        // ✅ FIX: documentType cukup sekali, jangan ketimpa
         documentType: documentType,
 
         type: payload.type || "-",
         institutionalLevel: payload.institutionalLevel || "-",
 
-        // ❌ HAPUS INI (yang bikin ketimpa):
-        // documentType: payload.documentType || "-",
 
         bpsdmpPIC: payload.bpsdmpPIC || "-",
         partnerPIC: payload.partnerPIC || "-",
@@ -63,10 +60,10 @@ export const getDashboardData = async (req, res) => {
         cooperationStartDate: payload.cooperationStartDate || "-",
         cooperationEndDate: payload.cooperationEndDate || "-",
 
-        // ✅ status utama (Aktif/Kadaluarsa)
+        // status utama (Aktif/Kadaluarsa)
         status: payload.status || "Baru",
 
-        // ✅ TAMBAHAN: status proses terakhir (yang kamu preserve saat renew)
+        // status proses terakhir (yang kamu preserve saat renew)
         subStatus: payload.subStatus || payload.statusAkhir || "",
         statusAkhir: payload.statusAkhir || payload.subStatus || "",
 

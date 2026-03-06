@@ -27,7 +27,6 @@ export const setupReminderJobs = () => {
           JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.cooperationEndDate')) AS endDate,
           JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.bpsdmpPIC')) AS picName,
           
-          -- ✅ COCOKKAN bpsdmpPIC dengan users untuk dapat email
           (
             SELECT u.email 
             FROM users u 
@@ -72,11 +71,10 @@ export const setupReminderJobs = () => {
             (new Date(doc.endDate) - new Date()) / (1000 * 60 * 60 * 24)
           );
 
-          // ✅ VALIDASI: Pastikan email PIC ditemukan
           if (!doc.picEmail) {
             console.log(`   ⚠️  Email tidak ditemukan untuk PIC "${doc.picName}" (Dokumen ID ${doc.id})`);
             picFailed++;
-            continue; // Skip dokumen ini
+            continue; 
           }
 
           const reminderData = {
@@ -86,7 +84,7 @@ export const setupReminderJobs = () => {
             startDate: doc.startDate,
             endDate: doc.endDate,
             picName: doc.picName,
-            picEmail: doc.picEmail // ✅ Email dari tabel users
+            picEmail: doc.picEmail 
           };
 
           // Kirim ke PIC
@@ -122,5 +120,5 @@ export const setupReminderJobs = () => {
   console.log('   [AUTO REMINDER] Scheduler aktif:');
   console.log('   • Setiap hari jam 08:00 WITA');
   console.log('   • Cek dokumen akan expired dalam 1-14 hari');
-  console.log('   • Kirim email ke PIC otomatis (email diambil dari tabel users)');
+  console.log('   • Kirim email ke PIC otomatis');
 };

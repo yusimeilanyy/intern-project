@@ -5,7 +5,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { requireAuth } from '../middleware/auth.js';
 
-// Import controller functions - sesuaikan dengan lokasi actual Anda
 import {
   getDashboardData,
   getAllMous,
