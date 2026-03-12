@@ -15,6 +15,21 @@ const transporter = nodemailer.createTransport({
 });
 
 // ========================================
+// HELPER: HITUNG SISA HARI BERDASARKAN TANGGAL KALENDER
+// ========================================
+const calculateDaysRemaining = (endDate) => {
+  if (!endDate) return 0;
+
+  const today = new Date();
+  const end = new Date(endDate);
+
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  return Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+};
+
+// ========================================
 // GET USERS BY ROLE & TEAM
 // ========================================
 const getUsersByRole = async (role, teamId = null) => {
@@ -59,11 +74,14 @@ export const sendToPIC = async (doc, daysRemaining) => {
       return { success: false, message: 'No PIC email' };
     }
 
-    const urgency = daysRemaining <= 7 ? '⚠️ SANGAT MENDESAK' : 
-                    daysRemaining <= 10 ? '⏳ MENDESAK' : '📅 Perlu Perhatian';
+    const normalizedDaysRemaining =
+      Number.isInteger(daysRemaining) ? daysRemaining : calculateDaysRemaining(doc.endDate);
+
+    const urgency = normalizedDaysRemaining <= 7 ? '⚠️ SANGAT MENDESAK' : 
+                    normalizedDaysRemaining <= 10 ? '⏳ MENDESAK' : '📅 Perlu Perhatian';
     
-    const urgencyColor = daysRemaining <= 7 ? '#ef4444' : 
-                         daysRemaining <= 10 ? '#f59e0b' : '#3b82f6';
+    const urgencyColor = normalizedDaysRemaining <= 7 ? '#ef4444' : 
+                         normalizedDaysRemaining <= 10 ? '#f59e0b' : '#3b82f6';
 
     const startDate = doc.startDate ? new Date(doc.startDate).toLocaleDateString('id-ID') : '-';
     const endDate = doc.endDate ? new Date(doc.endDate).toLocaleDateString('id-ID') : '-';
@@ -98,13 +116,13 @@ export const sendToPIC = async (doc, daysRemaining) => {
             <div class="content">
               <p><strong>Halo ${doc.picName},</strong></p>
               
-              <p>Anda menerima email ini karena Anda adalah <strong>PIC</strong> untuk dokumen berikut yang akan <strong>expired dalam ${daysRemaining} hari</strong>:</p>
+              <p>Anda menerima email ini karena Anda adalah <strong>PIC</strong> untuk dokumen berikut yang akan <strong>expired dalam ${normalizedDaysRemaining} hari</strong>:</p>
               
               <div class="info-box">
                 <p><strong>📋 Jenis Dokumen :</strong> ${doc.type}</p>
                 <p><strong>🏢 Mitra :</strong> ${doc.institution}</p>
                 <p><strong>📅 Periode :</strong> ${startDate} → ${endDate}</p>
-                <p><strong>⏳ Sisa Waktu :</strong> <strong style="color: ${urgencyColor};">${daysRemaining} hari</strong></p>
+                <p><strong>⏳ Sisa Waktu :</strong> <strong style="color: ${urgencyColor};">${normalizedDaysRemaining} hari</strong></p>
               </div>
 
               <h3>📝 Tindakan yang Harus Dilakukan :</h3>
@@ -162,8 +180,15 @@ export const sendToManager = async (teamId, expiringDocs) => {
       return { success: false, message: 'No managers found' };
     }
 
-    const totalDocs = expiringDocs.length;
-    const urgentDocs = expiringDocs.filter(d => d.daysRemaining <= 7).length;
+    const normalizedDocs = expiringDocs.map(doc => ({
+      ...doc,
+      daysRemaining: Number.isInteger(doc.daysRemaining)
+        ? doc.daysRemaining
+        : calculateDaysRemaining(doc.endDate)
+    }));
+
+    const totalDocs = normalizedDocs.length;
+    const urgentDocs = normalizedDocs.filter(d => d.daysRemaining <= 7).length;
 
     const mailOptions = {
       from: `"BPSDMP Kominfo Manado" <${process.env.EMAIL_USER}>`,
@@ -209,7 +234,7 @@ export const sendToManager = async (teamId, expiringDocs) => {
               ` : ''}
               
               <div class="doc-list">
-                ${expiringDocs.map(doc => `
+                ${normalizedDocs.map(doc => `
                   <div class="doc-item ${doc.daysRemaining <= 7 ? 'doc-urgent' : ''}">
                     <strong>${doc.type}</strong>: ${doc.institution}
                     <div style="color: ${doc.daysRemaining <= 7 ? '#ef4444' : '#3b82f6'}; margin-top: 5px;">
@@ -220,7 +245,7 @@ export const sendToManager = async (teamId, expiringDocs) => {
               </div>
               
               <div style="text-align: center; margin: 25px 0;">
-                <a href="${process.env.FRONTEND_URL}/dashboard"="btn" style="background: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                <a href="${process.env.FRONTEND_URL}/dashboard" style="background: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                   📊 Lihat Semua Dokumen
                 </a>
               </div>
@@ -274,6 +299,13 @@ export const sendDailyDigest = async () => {
       ORDER BY daysRemaining ASC
     `);
 
+    const normalizedDocs = expiringDocs.map(doc => ({
+      ...doc,
+      daysRemaining: Number.isInteger(doc.daysRemaining)
+        ? doc.daysRemaining
+        : calculateDaysRemaining(doc.endDate)
+    }));
+
     const [expiredToday] = await pool.query(`
       SELECT COUNT(*) AS count FROM mous m
       WHERE 
@@ -281,8 +313,8 @@ export const sendDailyDigest = async () => {
         AND DATE(STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.cooperationEndDate')), '%Y-%m-%d')) = CURDATE()
     `);
 
-    const totalExpiring = expiringDocs.length;
-    const urgentDocs = expiringDocs.filter(d => d.daysRemaining <= 7).length;
+    const totalExpiring = normalizedDocs.length;
+    const urgentDocs = normalizedDocs.filter(d => d.daysRemaining <= 7).length;
 
     const adminEmails = (await getUsersByRole('admin')).map(u => u.email).filter(email => email);
 
@@ -347,7 +379,7 @@ export const sendDailyDigest = async () => {
               ${totalExpiring > 0 ? `
                 <h3>📋 Dokumen Akan Expired:</h3>
                 <div class="doc-list">
-                  ${expiringDocs.map(doc => `
+                  ${normalizedDocs.map(doc => `
                     <div class="doc-item ${doc.daysRemaining <= 7 ? 'doc-urgent' : ''}">
                       <strong>${doc.documentType || (doc.category === 'pks' ? 'PKS' : 'MoU')}</strong>: 
                       ${doc.institutionalLevel || '-'} 

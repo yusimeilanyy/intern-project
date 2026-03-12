@@ -248,7 +248,17 @@ export const getAllMous = async (req, res) => {
 export const getMouById = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.query("SELECT * FROM mous WHERE id = ?", [id]);
+    // ✅ PERBAIKAN: Tambah perhitungan daysRemaining di MySQL (SAMA PERSIS DENGAN CRON JOB & DASHBOARD)
+    const [rows] = await pool.query(`
+      SELECT 
+        m.*,
+        DATEDIFF(
+          STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.cooperationEndDate')), '%Y-%m-%d'),
+          CURDATE()
+        ) AS daysRemaining
+      FROM mous m 
+      WHERE id = ?
+    `, [id]);
 
     if (!rows[0]) {
       return res.status(404).json({ message: "MoU tidak ditemukan" });
@@ -261,10 +271,12 @@ export const getMouById = async (req, res) => {
       console.error("Error parsing payload:", e);
     }
 
+    // ✅ PERBAIKAN: daysRemaining diletakkan SETELAH ...payload agar tidak ditimpa
     res.json({
       id: rows[0].id,
       category: rows[0].category,
       ...payload,
+      daysRemaining: rows[0].daysRemaining !== null ? parseInt(rows[0].daysRemaining) : null,
     });
   } catch (error) {
     console.error("Get mou by id error:", error);
