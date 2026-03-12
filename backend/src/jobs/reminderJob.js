@@ -1,22 +1,14 @@
-// ========================================
-// REMINDER JOB - OTOMATIS SETIAP HARI
-// ========================================
 import cron from 'node-cron';
 import { pool } from '../db.js';
 import { sendToPIC } from '../controllers/emailController.js';
 
 export const setupReminderJobs = () => {
   
-  // ========================================
-  // JOB: CEK & KIRIM REMINDER OTOMATIS SETIAP HARI
-  // ========================================
+  // CEK & KIRIM REMINDER OTOMATIS SETIAP HARI
   cron.schedule('0 8 * * *', async () => {
     console.log('⏰ [AUTO REMINDER] Memeriksa dokumen akan expired dalam 14 hari...');
     
     try {
-      // ========================================
-      // QUERY: AMBIL DOKUMEN YANG AKAN EXPIRED 1-14 HARI
-      // ========================================
       const [documents] = await pool.query(`
         SELECT 
           m.id,
@@ -33,7 +25,13 @@ export const setupReminderJobs = () => {
             WHERE u.full_name = JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.bpsdmpPIC'))
                OR u.username = JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.bpsdmpPIC'))
             LIMIT 1
-          ) AS picEmail
+          ) AS picEmail,
+
+          -- ✅ TAMBAHAN: Hitung daysRemaining di MySQL
+          DATEDIFF(
+            STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(m.payload, '$.cooperationEndDate')), '%Y-%m-%d'),
+            CURDATE()
+          ) AS daysRemaining
           
         FROM mous m
         WHERE 
@@ -67,9 +65,8 @@ export const setupReminderJobs = () => {
       
       for (const doc of documents) {
         try {
-          const daysRemaining = Math.floor(
-            (new Date(doc.endDate) - new Date()) / (1000 * 60 * 60 * 24)
-          );
+          // ✅ UBAH: Gunakan daysRemaining dari MySQL query, jangan hitung ulang
+          const daysRemaining = doc.daysRemaining;
 
           if (!doc.picEmail) {
             console.log(`   ⚠️  Email tidak ditemukan untuk PIC "${doc.picName}" (Dokumen ID ${doc.id})`);
