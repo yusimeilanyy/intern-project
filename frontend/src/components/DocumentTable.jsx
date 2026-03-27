@@ -656,9 +656,9 @@ const DocumentTable = ({ documents, loading, documentTypeFilter = "all", statusF
     // Berfungsi untuk style elemen table
     table: { width: "100%", borderCollapse: "separate", borderSpacing: 0 },
     // Berfungsi untuk style header cell tabel (th)
-    th: { padding: "14px 16px", fontSize: 14, fontWeight: 600, color: "#0b2e4b", background: C.headBg, textAlign: "left", borderBottom: `1px solid ${C.softBorder}`, whiteSpace: "nowrap" },
+    th: { padding: "14px 16px", fontSize: 14, fontWeight: 600, color: "#0b2e4b", background: C.headBg, textAlign: "center", borderBottom: `1px solid ${C.softBorder}`, whiteSpace: "nowrap" },
     // Berfungsi untuk style data cell tabel (td)
-    td: { padding: "16px 16px", fontSize: 14, color: C.text, borderBottom: `1px solid rgba(2, 6, 23, 0.04)`, verticalAlign: "middle" },
+    td: { padding: "16px 16px", fontSize: 14, color: C.text, borderBottom: `1px solid rgba(2, 6, 23, 0.04)`, verticalAlign: "middle",  textAlign: "center" },
     // Berfungsi untuk function yang return style badge jenis dokumen (MoU/PKS) berdasarkan tipe
     docPill: (type) => {
       const key = (type || "").toLowerCase();

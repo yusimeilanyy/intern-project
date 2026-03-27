@@ -367,7 +367,7 @@ export default function NonPemdaContent() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border-separate border-spacing-y-4">
               <thead className="border-b border-gray-300">
-                <tr className="text-[11px] text-gray-500 uppercase tracking-wide">
+                <tr className="text-[12px] text-gray-600 tracking-wide">
                   <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Perjanjian</th>
                   <th className="px-4 py-3 text-center font-semibold">Tingkat <br /> Kerja Sama</th>
                   <th className="px-4 py-3 text-center font-semibold">Jenis <br /> Dokumen</th>
@@ -553,6 +553,34 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
     finalDocumentUrl: '',
   });
 
+  // ✅ TAMBAHAN: State untuk daftar user PIC dari database
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // ✅ TAMBAHAN: Fetch daftar user saat modal mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const token = localStorage.getItem("token");
+        const res = await fetch('/api/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        console.log("📥 Raw API response:", data); // DEBUG: lihat struktur data
+        // ✅ PERBAIKAN: Support berbagai kemungkinan struktur response
+        const userList = data?.users || data?.data?.users || data?.result || data || [];
+        console.log("📥 Parsed users:", userList); // DEBUG: lihat hasil parsing
+        setUsers(Array.isArray(userList) ? userList : []);
+      } catch (e) {
+        console.error("❌ Gagal load data user:", e);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
   useEffect(() => {
     if (initialData) {
       const initialType = initialData.type || '';
@@ -717,16 +745,34 @@ function NonPemdaFormModal({ initialData, onSubmit, onCancel }) {
               </div>
             </div>
 
+            {/* ✅ PIC BPSDMP - DIUBAH MENJADI SELECT DARI DATABASE USER */}
             <div>
               <label className="block text-sm font-medium text-gray-700">PIC BLSDM Komdigi Manado</label>
-              <input
-                type="text"
+              <select
                 name="bpsdmpPIC"
                 value={formData.bpsdmpPIC}
                 onChange={handleChange}
-                placeholder="Masukkan nama PIC"
-                className={inputClass}
-              />
+                className={selectClass}
+                required
+              >
+                <option value="">Pilih PIC BLSDM Komdigi Manado</option>
+                {users.map(user => {
+                  // ✅ PRIORITAS: full_name (dari database) > namaLengkap > fullName > name > username
+                  const displayName = user.full_name || user.namaLengkap || user.fullName || user.name || user.username;
+                  
+                  return (
+                    <option key={user.id} value={displayName}>
+                      {displayName}
+                    </option>
+                  );
+                })}
+              </select>
+              {loadingUsers && (
+                <p className="text-xs text-gray-500 mt-1">Memuat data user...</p>
+              )}
+              {!loadingUsers && users.length === 0 && (
+                <p className="text-xs text-orange-500 mt-1">⚠️ Tidak ada user ditemukan</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
